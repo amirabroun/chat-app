@@ -1,16 +1,57 @@
-# chat_app
+# Chat App
 
-A new Flutter project.
+یک اپلیکیشن پیام‌رسان فوری ساخته‌شده با **Flutter** و **Firebase** که امکان چت خصوصی و گروهی را فراهم می‌کند.
 
-## Getting Started
+## ویژگی‌های پروژه
+- **احراز هویت** (ثبت‌نام، ورود، مدیریت کاربران با Firebase Authentication)
+- **چت خصوصی و گروهی** (ارسال و دریافت پیام متنی و چندرسانه‌ای)
+- **نوتیفیکیشن** (اطلاع‌رسانی هنگام دریافت پیام)
+- **وضعیت پیام‌ها** (خوانده شده، ارسال شده)
+- **مدیریت گروه‌ها** (ایجاد، اضافه کردن کاربران، ترک گروه)
 
-This project is a starting point for a Flutter application.
+## پیش‌نیازها
+قبل از اجرای پروژه، مطمئن شوید که موارد زیر روی سیستم شما نصب شده است:
 
-A few resources to get you started if this is your first Flutter project:
+- Flutter SDK
+- Android Studio یا VS Code (با افزونه Flutter)
+- یک دستگاه شبیه‌ساز یا گوشی متصل به سیستم
+- Firebase (برای راه‌اندازی پروژه Firebase، دستورالعمل زیر را ببینید)
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+## نحوه نصب و اجرا
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+### ۱. کلون کردن ریپازیتوری
+```sh
+git clone https://github.com/username/chat-app.git
+cd chat-app
+```
+
+### ۲. نصب وابستگی‌ها
+```sh
+flutter pub get
+```
+
+### ۳. پیکربندی Firebase
+1. به [کنسول Firebase](https://console.firebase.google.com/) بروید و یک پروژه جدید بسازید.
+2. بسته‌های Firebase را در پروژه Flutter اضافه کنید:
+    ```sh
+    flutterfire configure
+    ```
+3. فایل `google-services.json` را برای اندروید و `GoogleService-Info.plist` را برای iOS در مسیر مناسب قرار دهید.
+
+### ۴. اجرای برنامه
+برای اجرا روی شبیه‌ساز یا گوشی واقعی:
+```sh
+flutter run
+```
+
+## تکنولوژی‌های استفاده‌شده
+- **Flutter** (Dart)
+- **Firebase** (Authentication, Firestore, Cloud Messaging)
+- **Provider یا Riverpod** برای مدیریت وضعیت
+- **Material Design** برای UI
+
+## مشارکت در پروژه
+اگر می‌خواهید در پروژه مشارکت کنید:
+1. یک **Fork** از ریپازیتوری ایجاد کنید.
+2. تغییرات خود را در یک **Branch جدید** اعمال کنید.
+3. یک **Pull Request** ارسال کنید.
