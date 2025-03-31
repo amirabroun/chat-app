@@ -1,5 +1,5 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:chat_app/widgets/user_avatar.dart';
 
 class ChatItemData {
   final String name;
@@ -25,7 +25,7 @@ class ChatItem extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     return ListTile(
-      leading: _buildAvatar(chatItem.name, chatItem.avatarUrl),
+      leading: UserAvatar(name: chatItem.name, avatarUrl: chatItem.avatarUrl),
       title: Text(
         chatItem.name,
         style: TextStyle(
@@ -42,46 +42,4 @@ class ChatItem extends StatelessWidget {
       trailing: Text(chatItem.time, style: TextStyle(color: Colors.grey)),
     );
   }
-}
-
-// generate an avatar
-Widget _buildAvatar(String name, String? avatarUrl) {
-  return CircleAvatar(
-    backgroundColor: _getRandomColor(name),
-    child:
-        avatarUrl != null && avatarUrl.isNotEmpty
-            ? Image.network(
-              avatarUrl,
-              width: 40,
-              height: 40,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return _buildFallbackText(name);
-              },
-            )
-            : _buildFallbackText(name),
-  );
-}
-
-// extract first letter of name
-Widget _buildFallbackText(String name) {
-  return Text(
-    name.isNotEmpty ? name[0].toUpperCase() : "?",
-    style: const TextStyle(
-      color: Colors.white,
-      fontSize: 18,
-      fontWeight: FontWeight.bold,
-    ),
-  );
-}
-
-// generate random colors based on name
-Color _getRandomColor(String name) {
-  final random = Random(name.hashCode);
-  return Color.fromARGB(
-    255,
-    100 + random.nextInt(156),
-    100 + random.nextInt(156),
-    100 + random.nextInt(156),
-  );
 }
