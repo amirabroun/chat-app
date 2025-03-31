@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'screens/chat_list_screen.dart';
+import 'widgets/chat_item.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const ChatApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class ChatApp extends StatelessWidget {
+  const ChatApp({super.key});
 
   @override
   Widget build(BuildContext context) {
