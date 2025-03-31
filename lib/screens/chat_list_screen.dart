@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:chat_app/widgets/chat_item.dart';
+import 'package:chat_app/widgets/user_avatar.dart';
 
 class ChatListScreen extends StatelessWidget {
   final List<ChatItemData> chatItems;
@@ -23,6 +24,35 @@ class ChatListScreen extends StatelessWidget {
           itemBuilder: (context, index) {
             return ChatItem(chatItem: chatItems[index]);
           },
+        ),
+      ),
+      drawer: Drawer(
+        width: 350,
+        backgroundColor: colorScheme.primary,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: <Widget>[
+            DrawerHeader(
+              decoration: BoxDecoration(color: colorScheme.secondary),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  UserAvatar(
+                    name: 'username placeholder',
+                    avatarUrl: "https://example.com/avatar.jpg",
+                  ),
+                  Text(
+                    'username placeholder',
+                    style: TextStyle(
+                      color: colorScheme.onPrimary,
+                      fontSize: 20,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
