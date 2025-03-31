@@ -1,122 +1,109 @@
 import 'package:flutter/material.dart';
+import 'screens/chat_list_screen.dart';
+import 'widgets/chat_item.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const ChatApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class ChatApp extends StatelessWidget {
+  const ChatApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Chat App',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
-    );
-  }
-}
-
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
+        colorScheme: ColorScheme.dark(
+          brightness: Brightness.dark,
+          primary: Color.fromRGBO(10, 10, 10, 1),
+          onPrimary: Color.fromRGBO(250, 250, 250, 1),
+          secondary: Color.fromRGBO(23, 23, 23, 1),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+      home: ChatListScreen(chatItems: sampleChats),
     );
   }
 }
+
+// Dummy data for testing
+List<ChatItemData> sampleChats = [
+  ChatItemData(
+    name: "Proxy MTProto",
+    message: "Server: Unknown Port: 443...",
+    time: "1:00 PM",
+    avatarUrl: "https://example.com/proxy.png",
+  ),
+  ChatItemData(
+    name: "Mooji Coach",
+    message: "طبق این نمودار هرچی آی کیو بالاتر...",
+    time: "12:44 PM",
+    avatarUrl: "https://example.com/mooji.png",
+  ),
+  ChatItemData(
+    name: "Vigato | ویجیاتو",
+    message: "شو رانر سریال The Boys تایید کرد که...",
+    time: "12:30 PM",
+    avatarUrl: "https://example.com/vigato.png",
+  ),
+  ChatItemData(
+    name: "Digiato | دیجیاتو",
+    message: "سامسونگ ظاهراً روی توسعه گوشی تاشوی جدید...",
+    time: "12:10 PM",
+    avatarUrl: "https://example.com/digiato.png",
+  ),
+  ChatItemData(
+    name: "melobit | ملو بیت",
+    message: "Voice message",
+    time: "12:00 PM",
+    avatarUrl: "https://example.com/melobit.png",
+  ),
+  ChatItemData(
+    name: "Highroad Whispers",
+    message: "احتمالا امشب از 7 تا فردا عصر ساعت 8...",
+    time: "11:12 AM",
+    avatarUrl: "https://example.com/highroad.png",
+  ),
+  ChatItemData(
+    name: "Crypto Oxygen",
+    message: "#VIDT +70%",
+    time: "8:33 AM",
+    avatarUrl: "https://example.com/crypto.png",
+  ),
+  ChatItemData(
+    name: "Mini شعر",
+    message: "سیری در پیوند تو ندارد نگاه من...",
+    time: "10:10 AM",
+    avatarUrl: "https://example.com/minipoetry.png",
+  ),
+  ChatItemData(
+    name: "Ali Reza",
+    message: "Hey, did you check the new update?",
+    time: "9:45 AM",
+    avatarUrl: "https://example.com/alireza.png",
+  ),
+  ChatItemData(
+    name: "Sara K.",
+    message: "I’ll send the report in 10 minutes.",
+    time: "9:30 AM",
+    avatarUrl: "https://example.com/sarak.png",
+  ),
+  ChatItemData(
+    name: "John Doe",
+    message: "Let's meet at 5 PM.",
+    time: "8:00 AM",
+    avatarUrl: "https://example.com/johndoe.png",
+  ),
+  ChatItemData(
+    name: "John Doe",
+    message: "Let's meet at 5 PM.",
+    time: "8:00 AM",
+    avatarUrl: "https://example.com/johndoe.png",
+  ),
+  ChatItemData(
+    name: "John Doe",
+    message: "Let's meet at 5 PM.",
+    time: "8:00 AM",
+    avatarUrl: "https://example.com/johndoe.png",
+  ),
+];
