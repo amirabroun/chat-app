@@ -13,8 +13,12 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Chat App',
       theme: ThemeData(
-          brightness: Brightness.dark,
-          primaryColor: Colors.blueGrey
+        colorScheme: ColorScheme.dark(
+            brightness: Brightness.dark,
+            primary: Color.fromRGBO(10, 10, 10, 1),
+            onPrimary: Color.fromRGBO(250, 250, 250, 1),
+            secondary: Color.fromRGBO(23, 23, 23, 1),
+        ),
       ),
       home: ChatListScreen(chatItems: sampleChats),
     );
