@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 
 class ChatListScreen extends StatelessWidget {
@@ -7,17 +8,26 @@ class ChatListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme
+        .of(context)
+        .colorScheme;
+
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: Text("Chats"),
-        backgroundColor: Colors.black,
+        title: Text("My Chats"),
+        backgroundColor: colorScheme.secondary,
       ),
-      body: ListView.builder(
-        itemCount: chatItems.length,
-        itemBuilder: (context, index) {
-          return ChatItem(chatItem: chatItems[index]);
-        },
+      body: Container(
+        decoration: BoxDecoration(
+            color: colorScheme.primary
+        ),
+        child: ListView.builder(
+          itemCount: chatItems.length,
+          itemBuilder: (context, index) {
+            return ChatItem(chatItem: chatItems[index]);
+          },
+        ),
       ),
     );
   }
@@ -30,22 +40,24 @@ class ChatItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme
+        .of(context)
+        .colorScheme;
+
     return ListTile(
-      leading: CircleAvatar(backgroundImage: NetworkImage(chatItem.avatarUrl)),
+      leading: _buildAvatar(chatItem.name, chatItem.avatarUrl),
       title: Text(
         chatItem.name,
-        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        style: TextStyle(
+            color: colorScheme.onPrimary, fontWeight: FontWeight.bold),
       ),
       subtitle: Text(
         chatItem.message,
         maxLines: 1,
-        overflow: TextOverflow.ellipsis,
+        overflow: TextOverflow.clip,
         style: TextStyle(color: Colors.grey),
       ),
-      trailing: Text(
-        chatItem.time,
-        style: TextStyle(color: Colors.grey),
-      ),
+      trailing: Text(chatItem.time, style: TextStyle(color: Colors.grey)),
       onTap: () {
         // Navigate to chat screen
       },
@@ -65,4 +77,41 @@ class ChatItemData {
     required this.time,
     required this.avatarUrl,
   });
+}
+
+Widget _buildAvatar(String name, String? avatarUrl) {
+  return CircleAvatar(
+    backgroundColor: _getRandomColor(name),
+    child: avatarUrl != null && avatarUrl.isNotEmpty
+        ? Image.network(
+      avatarUrl,
+      width: 40,
+      height: 40,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) {
+        return _buildFallbackText(name);
+      },
+    )
+        : _buildFallbackText(name),
+  );
+}
+
+/// Function to generate random colors based on name
+Color _getRandomColor(String name) {
+  final random = Random(name.hashCode);
+  return Color.fromARGB(
+    255,
+    100 + random.nextInt(156),
+    100 + random.nextInt(156),
+    100 + random.nextInt(156),
+  );
+}
+
+/// Function to display first letter of name
+Widget _buildFallbackText(String name) {
+  return Text(
+    name.isNotEmpty ? name[0].toUpperCase() : "?",
+    style: const TextStyle(
+        color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+  );
 }
