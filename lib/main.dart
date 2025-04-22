@@ -1,9 +1,21 @@
+import 'package:chat_app/screens/login_screen.dart';
 import 'package:flutter/material.dart';
-import 'screens/chat_list_screen.dart';
+// import 'screens/chat_list_screen.dart';
 import 'widgets/chat_item.dart';
+import 'package:firebase_core/firebase_core.dart';
 
-void main() {
-  runApp(const ChatApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: FirebaseOptions(
+      apiKey: "AIzaSyAEQQihRDGBpoVAKlS9MsPxYyJ4A8OktSY",
+      appId: "1:840506521711:android:1b4229d18954edd958359a",
+      messagingSenderId: "840506521711",
+      projectId: "chat-app-1b168",
+    ),
+  );
+
+  runApp(ChatApp());
 }
 
 class ChatApp extends StatelessWidget {
@@ -21,8 +33,21 @@ class ChatApp extends StatelessWidget {
           secondary: Color.fromRGBO(23, 23, 23, 1),
         ),
       ),
-      home: ChatListScreen(chatItems: sampleChats),
+      home: LoginScreen(),
     );
+
+    // return MaterialApp(
+    //   title: 'Chat App',
+    //   theme: ThemeData(
+    //     colorScheme: ColorScheme.dark(
+    //       brightness: Brightness.dark,
+    //       primary: Color.fromRGBO(10, 10, 10, 1),
+    //       onPrimary: Color.fromRGBO(250, 250, 250, 1),
+    //       secondary: Color.fromRGBO(23, 23, 23, 1),
+    //     ),
+    //   ),
+    //   home: ChatListScreen(chatItems: sampleChats),
+    // );
   }
 }
 
