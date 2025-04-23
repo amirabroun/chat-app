@@ -27,7 +27,7 @@ class ChatApp extends StatelessWidget {
     final user = FirebaseAuth.instance.currentUser;
 
     if (user != null) {
-      return const ProfileScreen(); 
+      return const ProfileScreen();
     } else {
       return const LoginScreen();
     }
@@ -36,6 +36,7 @@ class ChatApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'Chat App',
       theme: ThemeData(
         colorScheme: ColorScheme.dark(
