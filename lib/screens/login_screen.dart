@@ -15,6 +15,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final _formKey = GlobalKey<FormState>(); 
 
   @override
   void dispose() {
@@ -53,57 +54,79 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       backgroundColor: Colors.grey[200],
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.message, size: 100, color: Colors.blueGrey),
-            const SizedBox(height: 20),
-            const Text(
-              "Hi my friend",
-              style: TextStyle(color: Colors.blueGrey),
-            ),
-            const SizedBox(height: 20),
-            MyTextfield(
-              hintText: 'Email',
-              controller: _emailController,
-              icon: const Icon(Icons.email, size: 30, color: Colors.blueGrey),
-            ),
-            const SizedBox(height: 20),
-            MyTextfield(
-              hintText: 'Password',
-              controller: _passwordController,
-              icon: const Icon(
-                Icons.password,
-                size: 30,
-                color: Colors.blueGrey,
+        child: Form(
+          key: _formKey, 
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.message, size: 100, color: Colors.blueGrey),
+              const SizedBox(height: 20),
+              const Text(
+                "Hi my friend",
+                style: TextStyle(color: Colors.blueGrey),
               ),
-            ),
-            const SizedBox(height: 20),
-            MyButton(text: 'ارسال', onPressed: () => login()),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text(
-                  "حساب کاربری نداری؟",
-                  style: TextStyle(color: Colors.grey),
+              const SizedBox(height: 20),
+              MyTextfield(
+                hintText: 'Email',
+                controller: _emailController,
+                icon: const Icon(Icons.email, size: 30, color: Colors.blueGrey),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'لطفاً ایمیل را وارد کنید';
+                  }
+                  return null; 
+                },
+              ),
+              const SizedBox(height: 20),
+              MyTextfield(
+                hintText: 'Password',
+                controller: _passwordController,
+                icon: const Icon(
+                  Icons.password,
+                  size: 30,
+                  color: Colors.blueGrey,
                 ),
-                TextButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const RegisterScreen(),
-                      ),
-                    );
-                  },
-                  child: const Text(
-                    "ثبت‌نام",
-                    style: TextStyle(color: Colors.blueGrey),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'لطفاً پسورد را وارد کنید';
+                  }
+                  return null; 
+                },
+              ),
+              const SizedBox(height: 20),
+              MyButton(
+                text: 'ارسال',
+                onPressed: () {
+                  if (_formKey.currentState?.validate() ?? false) {
+                    login(); 
+                  }
+                },
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    "حساب کاربری نداری؟",
+                    style: TextStyle(color: Colors.grey),
                   ),
-                ),
-              ],
-            ),
-          ],
+                  TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const RegisterScreen(),
+                        ),
+                      );
+                    },
+                    child: const Text(
+                      "ثبت‌نام",
+                      style: TextStyle(color: Colors.blueGrey),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

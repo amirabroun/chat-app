@@ -4,14 +4,21 @@ class MyTextfield extends StatelessWidget {
   final String hintText;
   final Icon icon;
   final TextEditingController controller;
+  final String? Function(String?)? validator;
 
-  const MyTextfield({super.key, required this.hintText, required this.icon, required this.controller});
+  const MyTextfield({
+    Key? key,
+    required this.hintText,
+    required this.icon,
+    required this.controller,
+    this.validator,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 25),
-      child: TextField(
+      child: TextFormField(
         controller: controller,
         style: TextStyle(fontSize: 16),
         obscureText: hintText == 'Password',
@@ -31,6 +38,7 @@ class MyTextfield extends StatelessWidget {
           filled: true,
           fillColor: Colors.black,
         ),
+        validator: validator, 
       ),
     );
   }
