@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 // import 'screens/chat_list_screen.dart';
 import 'widgets/chat_item.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:chat_app/screens/profile_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,6 +23,16 @@ void main() async {
 class ChatApp extends StatelessWidget {
   const ChatApp({super.key});
 
+  Widget getInitialScreen() {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user != null) {
+      return const ProfileScreen(); 
+    } else {
+      return const LoginScreen();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -33,7 +45,7 @@ class ChatApp extends StatelessWidget {
           secondary: Color.fromRGBO(23, 23, 23, 1),
         ),
       ),
-      home: LoginScreen(),
+      home: getInitialScreen(),
     );
 
     // return MaterialApp(

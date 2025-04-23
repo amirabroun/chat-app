@@ -4,6 +4,7 @@ import 'package:chat_app/components/my_textfield.dart';
 import 'package:chat_app/components/my_button.dart';
 import 'package:chat_app/screens/login_screen.dart';
 import 'package:chat_app/screens/profile_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -17,6 +18,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _checkIfLoggedIn();
+  }
+
+  void _checkIfLoggedIn() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const ProfileScreen()),
+      );
+    });
+  }
 
   @override
   void dispose() {
