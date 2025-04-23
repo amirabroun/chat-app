@@ -3,15 +3,19 @@ import 'package:flutter/material.dart';
 class MyTextfield extends StatelessWidget {
   final String hintText;
   final Icon icon;
+  final bool obscureText;
   final TextEditingController controller;
   final String? Function(String?)? validator;
+  final TextInputType keyboardType;
 
   const MyTextfield({
     Key? key,
     required this.hintText,
     required this.icon,
+    this.obscureText = false,
     required this.controller,
     this.validator,
+    this.keyboardType = TextInputType.text,
   }) : super(key: key);
 
   @override
@@ -20,11 +24,15 @@ class MyTextfield extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 25),
       child: TextFormField(
         controller: controller,
-        style: TextStyle(fontSize: 16),
-        obscureText: hintText == 'Password',
+        style: const TextStyle(fontSize: 16),
+        obscureText: obscureText,
+        keyboardType: keyboardType,
         decoration: InputDecoration(
           prefixIcon: icon,
-          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 16,
+          ),
           hintText: hintText,
           hintStyle: TextStyle(color: Colors.grey.shade500),
           enabledBorder: OutlineInputBorder(
@@ -33,12 +41,12 @@ class MyTextfield extends StatelessWidget {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(5),
-            borderSide: BorderSide(color: Colors.blueAccent, width: 2),
+            borderSide: const BorderSide(color: Colors.blueAccent, width: 2),
           ),
           filled: true,
           fillColor: Colors.black,
         ),
-        validator: validator, 
+        validator: validator,
       ),
     );
   }

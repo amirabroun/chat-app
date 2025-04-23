@@ -25,20 +25,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _checkIfLoggedIn();
   }
 
-  void _checkIfLoggedIn() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      return;
-    }
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const ProfileScreen()),
-      );
-    });
-  }
-
   @override
   void dispose() {
     _emailController.dispose();
@@ -47,107 +33,148 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
-  void register() async {
-    final email = _emailController.text.trim();
-    final password = _passwordController.text.trim();
-    final confirmPassword = _confirmPasswordController.text.trim();
-
-    if (password != confirmPassword) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('رمز عبور و تکرار آن یکسان نیستند'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
+  Future<void> _checkIfLoggedIn() async {
+    if (FirebaseAuth.instance.currentUser != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const ProfileScreen()),
+        );
+      });
     }
+  }
+
+  Future<void> _registerUser() async {
+    if (!_validateInputs()) return;
 
     try {
-      final authService = AuthService();
-      await authService.signUpWithEmail(email: email, password: password);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('ثبت‌نام با موفقیت انجام شد'),
-          backgroundColor: Colors.green,
-        ),
+      await AuthService().signUpWithEmail(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
       );
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const ProfileScreen()),
-      );
+      _showSuccessMessage();
+      _navigateToProfile();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
-      );
+      _showErrorMessage(e.toString());
     }
+  }
+
+  bool _validateInputs() {
+    if (_passwordController.text != _confirmPasswordController.text) {
+      _showErrorMessage('رمز عبور و تکرار آن یکسان نیستند');
+      return false;
+    }
+    return true;
+  }
+
+  void _showSuccessMessage() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('ثبت‌نام با موفقیت انجام شد'),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+
+  void _showErrorMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
+  }
+
+  void _navigateToProfile() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const ProfileScreen()),
+    );
+  }
+
+  void _navigateToLogin() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Column(
+      children: [
+        const Icon(Icons.person_add, size: 80, color: Colors.blue),
+        const SizedBox(height: 16),
+        Text(
+          "ثبت‌نام کنید",
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            color: Colors.blue,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFormFields() {
+    return Column(
+      children: [
+        MyTextfield(
+          hintText: 'ایمیل',
+          controller: _emailController,
+          icon: const Icon(Icons.email, color: Colors.blue),
+          keyboardType: TextInputType.emailAddress,
+        ),
+        const SizedBox(height: 16),
+        MyTextfield(
+          hintText: 'رمز عبور',
+          controller: _passwordController,
+          icon: const Icon(Icons.lock, color: Colors.blue),
+          obscureText: true,
+        ),
+        const SizedBox(height: 16),
+        MyTextfield(
+          hintText: 'تکرار رمز عبور',
+          controller: _confirmPasswordController,
+          icon: const Icon(Icons.lock_outline, color: Colors.blue),
+          obscureText: true,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLoginLink() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Text("حساب کاربری داری؟"),
+        TextButton(
+          onPressed: _navigateToLogin,
+          child: const Text("ورود", style: TextStyle(color: Colors.blue)),
+        ),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[200],
+      backgroundColor: Colors.black,
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+          padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.person_add, size: 100, color: Colors.blueGrey),
-              const SizedBox(height: 20),
-              const Text(
-                "ثبت‌نام کنید",
-                style: TextStyle(color: Colors.blueGrey, fontSize: 18),
+              _buildHeader(),
+              const SizedBox(height: 32),
+              _buildFormFields(),
+              const SizedBox(height: 24),
+              MyButton(
+                text: 'ثبت‌نام',
+                onPressed: _registerUser,
+                color: Colors.blue,
+                textColor: Colors.white,
               ),
-              const SizedBox(height: 20),
-              MyTextfield(
-                hintText: 'ایمیل',
-                controller: _emailController,
-                icon: const Icon(Icons.email, size: 30, color: Colors.blueGrey),
-              ),
-              const SizedBox(height: 20),
-              MyTextfield(
-                hintText: 'رمز عبور',
-                controller: _passwordController,
-                icon: const Icon(Icons.lock, size: 30, color: Colors.blueGrey),
-              ),
-              const SizedBox(height: 20),
-              MyTextfield(
-                hintText: 'تکرار رمز عبور',
-                controller: _confirmPasswordController,
-                icon: const Icon(
-                  Icons.lock_outline,
-                  size: 30,
-                  color: Colors.blueGrey,
-                ),
-              ),
-              const SizedBox(height: 20),
-              MyButton(text: 'ثبت‌نام', onPressed: register),
-              const SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text(
-                    "حساب کاربری داری؟",
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const LoginScreen(),
-                        ),
-                      );
-                    },
-                    child: const Text(
-                      "ورود",
-                      style: TextStyle(color: Colors.blueGrey),
-                    ),
-                  ),
-                ],
-              ),
+              const SizedBox(height: 16),
+              _buildLoginLink(),
             ],
           ),
         ),
