@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:chat_app/screens/login_screen.dart';
+import 'package:chat_app/components/my_textfield.dart'; 
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -16,9 +17,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final _formKey = GlobalKey<FormState>();
 
-  String _firstName = '';
-  String _lastName = '';
-  String _email = '';
+  final TextEditingController _firstNameController = TextEditingController();
+  final TextEditingController _lastNameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+
   bool _isLoading = true;
   bool _isEditing = false;
 
@@ -26,6 +28,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _loadUserData();
+  }
+
+  @override
+  void dispose() {
+    _firstNameController.dispose();
+    _lastNameController.dispose();
+    _emailController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadUserData() async {
@@ -54,9 +64,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _updateUserInfo(User user, Map<String, dynamic>? userData) {
     setState(() {
-      _firstName = userData?['first_name']?.toString() ?? '';
-      _lastName = userData?['last_name']?.toString() ?? '';
-      _email = user.email ?? '';
+      _firstNameController.text = userData?['first_name']?.toString() ?? '';
+      _lastNameController.text = userData?['last_name']?.toString() ?? '';
+      _emailController.text = user.email ?? '';
     });
   }
 
@@ -72,9 +82,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
 
       await _firestore.collection('users').doc(user.uid).set({
-        'first_name': _firstName,
-        'last_name': _lastName,
-        'email': _email,
+        'first_name': _firstNameController.text,
+        'last_name': _lastNameController.text,
+        'email': _emailController.text,
         'updated_at': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 
@@ -156,28 +166,47 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildTextField(
+            MyTextfield(
               label: 'نام',
-              value: _firstName,
-              icon: Icons.person,
-              onChanged: (value) => _firstName = value,
+              controller: _firstNameController,
+              icon: const Icon(Icons.person, color: Colors.white),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'لطفاً نام را وارد کنید';
+                }
+                return null;
+              },
+              onChanged: (value) {},
               enabled: _isEditing,
             ),
             const SizedBox(height: 20),
-            _buildTextField(
+            MyTextfield(
               label: 'نام خانوادگی',
-              value: _lastName,
-              icon: Icons.person_outline,
-              onChanged: (value) => _lastName = value,
+              controller: _lastNameController,
+              icon: const Icon(Icons.person_outline, color: Colors.white),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'لطفاً نام خانوادگی را وارد کنید';
+                }
+                return null;
+              },
+              onChanged: (value) {},
               enabled: _isEditing,
             ),
             const SizedBox(height: 20),
-            _buildTextField(
+            MyTextfield(
               label: 'ایمیل',
-              value: _email,
-              icon: Icons.email,
-              onChanged: (value) => _email = value,
-              enabled: false, 
+              controller: _emailController,
+              icon: const Icon(Icons.email, color: Colors.white),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'لطفاً ایمیل را وارد کنید';
+                }
+                return null;
+              },
+              onChanged: (value) {},
+              enabled: false,
+              keyboardType: TextInputType.emailAddress,
             ),
             if (_isEditing) ...[
               const SizedBox(height: 30),
@@ -191,31 +220,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildTextField({
-    required String label,
-    required String value,
-    required IconData icon,
-    required ValueChanged<String> onChanged,
-    bool enabled = true,
-  }) {
-    return TextFormField(
-      initialValue: value,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon),
-        border: const OutlineInputBorder(),
-      ),
-      onChanged: onChanged,
-      enabled: enabled,
-      validator: (value) {
-        if (label == 'ایمیل' && (value == null || value.isEmpty)) {
-          return 'لطفا ایمیل را وارد کنید';
-        }
-        return null;
-      },
     );
   }
 

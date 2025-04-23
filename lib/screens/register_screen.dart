@@ -14,10 +14,10 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController =
-      TextEditingController();
+  final TextEditingController _confirmPWController = TextEditingController();
 
   @override
   void initState() {
@@ -29,7 +29,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
-    _confirmPasswordController.dispose();
+    _confirmPWController.dispose();
     super.dispose();
   }
 
@@ -45,7 +45,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _registerUser() async {
-    if (!_validateInputs()) return;
+    if (!_formKey.currentState!.validate()) return;
+    if (_passwordController.text != _confirmPWController.text) {
+      _showErrorMessage('رمز عبور و تکرار آن یکسان نیستند');
+      return;
+    }
 
     try {
       await AuthService().signUpWithEmail(
@@ -56,16 +60,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
       _showSuccessMessage();
       _navigateToProfile();
     } catch (e) {
-      _showErrorMessage(e.toString());
+      _showErrorMessage(_getFriendlyErrorMessage(e));
     }
   }
 
-  bool _validateInputs() {
-    if (_passwordController.text != _confirmPasswordController.text) {
-      _showErrorMessage('رمز عبور و تکرار آن یکسان نیستند');
-      return false;
+  String _getFriendlyErrorMessage(dynamic error) {
+    if (error is FirebaseAuthException) {
+      switch (error.code) {
+        case 'email-already-in-use':
+          return 'این ایمیل قبلاً ثبت شده است';
+        case 'weak-password':
+          return 'رمز عبور باید حداقل ۶ کاراکتر باشد';
+        case 'invalid-email':
+          return 'ایمیل وارد شده معتبر نیست';
+        default:
+          return 'خطا در ثبت‌نام: ${error.message}';
+      }
     }
-    return true;
+    return 'خطای ناشناخته در ثبت‌نام';
   }
 
   void _showSuccessMessage() {
@@ -114,29 +126,64 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Widget _buildFormFields() {
-    return Column(
-      children: [
-        MyTextfield(
-          hintText: 'ایمیل',
-          controller: _emailController,
-          icon: const Icon(Icons.email, color: Colors.blue),
-          keyboardType: TextInputType.emailAddress,
-        ),
-        const SizedBox(height: 16),
-        MyTextfield(
-          hintText: 'رمز عبور',
-          controller: _passwordController,
-          icon: const Icon(Icons.lock, color: Colors.blue),
-          obscureText: true,
-        ),
-        const SizedBox(height: 16),
-        MyTextfield(
-          hintText: 'تکرار رمز عبور',
-          controller: _confirmPasswordController,
-          icon: const Icon(Icons.lock_outline, color: Colors.blue),
-          obscureText: true,
-        ),
-      ],
+    return Form(
+      key: _formKey,
+      child: Column(
+        children: [
+          MyTextfield(
+            label: 'ایمیل',
+            hintText: 'example@domain.com',
+            controller: _emailController,
+            icon: const Icon(Icons.email, color: Colors.blue),
+            keyboardType: TextInputType.emailAddress,
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'لطفاً ایمیل را وارد کنید';
+              }
+              if (!RegExp(
+                r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+              ).hasMatch(value)) {
+                return 'ایمیل معتبر نیست';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+          MyTextfield(
+            label: 'رمز عبور',
+            hintText: 'حداقل ۶ کاراکتر',
+            controller: _passwordController,
+            icon: const Icon(Icons.lock, color: Colors.blue),
+            obscureText: true,
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'لطفاً رمز عبور را وارد کنید';
+              }
+              if (value.length < 6) {
+                return 'رمز عبور باید حداقل ۶ کاراکتر باشد';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+          MyTextfield(
+            label: 'تکرار رمز عبور',
+            hintText: 'رمز عبور را تکرار کنید',
+            controller: _confirmPWController,
+            icon: const Icon(Icons.lock_outline, color: Colors.blue),
+            obscureText: true,
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'لطفاً تکرار رمز عبور را وارد کنید';
+              }
+              if (value != _passwordController.text) {
+                return 'رمز عبور و تکرار آن یکسان نیستند';
+              }
+              return null;
+            },
+          ),
+        ],
+      ),
     );
   }
 
@@ -144,11 +191,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Text("حساب کاربری داری؟"),
         TextButton(
           onPressed: _navigateToLogin,
           child: const Text("ورود", style: TextStyle(color: Colors.blue)),
         ),
+        const Text("حساب کاربری داری؟"),
       ],
     );
   }

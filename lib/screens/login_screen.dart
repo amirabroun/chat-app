@@ -15,7 +15,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final _formKey = GlobalKey<FormState>(); 
+  final _formKey = GlobalKey<FormState>();
 
   @override
   void dispose() {
@@ -24,108 +24,131 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void login() async {
-    final email = _emailController.text.trim();
-    final password = _passwordController.text.trim();
+  Future<void> _loginUser() async {
+    if (!_formKey.currentState!.validate()) return;
 
     try {
-      await AuthService().signInWithEmail(email: email, password: password);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('با موفقیت وارد شدید'),
-          backgroundColor: Colors.green,
-        ),
+      await AuthService().signInWithEmail(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
       );
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const ProfileScreen()),
-      );
+      _showSuccessMessage();
+      _navigateToProfile();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
-      );
+      _showErrorMessage(e.toString());
     }
+  }
+
+  void _showSuccessMessage() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('با موفقیت وارد شدید'),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+
+  void _showErrorMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
+  }
+
+  void _navigateToProfile() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const ProfileScreen()),
+    );
+  }
+
+  void _navigateToRegister() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const RegisterScreen()),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Column(
+      children: [
+        const Icon(Icons.message, size: 80, color: Colors.blue),
+        const SizedBox(height: 16),
+        Text(
+          "خوش آمدید",
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            color: Colors.blue,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFormFields() {
+    return Column(
+      children: [
+        MyTextfield(
+          hintText: 'ایمیل',
+          controller: _emailController,
+          icon: const Icon(Icons.email, color: Colors.blue),
+          validator:
+              (value) =>
+                  value?.isEmpty ?? true ? 'لطفاً ایمیل را وارد کنید' : null,
+          keyboardType: TextInputType.emailAddress,
+        ),
+        const SizedBox(height: 16),
+        MyTextfield(
+          hintText: 'رمز عبور',
+          controller: _passwordController,
+          icon: const Icon(Icons.lock, color: Colors.blue),
+          validator:
+              (value) =>
+                  value?.isEmpty ?? true ? 'لطفاً رمز عبور را وارد کنید' : null,
+          obscureText: true,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRegisterLink() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        TextButton(
+          onPressed: _navigateToRegister,
+          child: const Text("ثبت‌نام", style: TextStyle(color: Colors.blue)),
+        ),
+        const Text("حساب کاربری ندارید؟"),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[200],
       body: Center(
-        child: Form(
-          key: _formKey, 
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.message, size: 100, color: Colors.blueGrey),
-              const SizedBox(height: 20),
-              const Text(
-                "Hi my friend",
-                style: TextStyle(color: Colors.blueGrey),
-              ),
-              const SizedBox(height: 20),
-              MyTextfield(
-                hintText: 'Email',
-                controller: _emailController,
-                icon: const Icon(Icons.email, size: 30, color: Colors.blueGrey),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'لطفاً ایمیل را وارد کنید';
-                  }
-                  return null; 
-                },
-              ),
-              const SizedBox(height: 20),
-              MyTextfield(
-                hintText: 'Password',
-                controller: _passwordController,
-                icon: const Icon(
-                  Icons.password,
-                  size: 30,
-                  color: Colors.blueGrey,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildHeader(),
+                const SizedBox(height: 32),
+                _buildFormFields(),
+                const SizedBox(height: 24),
+                MyButton(
+                  text: 'ورود',
+                  onPressed: _loginUser,
+                  color: Colors.blue,
+                  textColor: Colors.white,
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'لطفاً پسورد را وارد کنید';
-                  }
-                  return null; 
-                },
-              ),
-              const SizedBox(height: 20),
-              MyButton(
-                text: 'ارسال',
-                onPressed: () {
-                  if (_formKey.currentState?.validate() ?? false) {
-                    login(); 
-                  }
-                },
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text(
-                    "حساب کاربری نداری؟",
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const RegisterScreen(),
-                        ),
-                      );
-                    },
-                    child: const Text(
-                      "ثبت‌نام",
-                      style: TextStyle(color: Colors.blueGrey),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+                const SizedBox(height: 16),
+                _buildRegisterLink(),
+              ],
+            ),
           ),
         ),
       ),
