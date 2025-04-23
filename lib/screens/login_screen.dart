@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:chat_app/components/my_textfield.dart';
 import 'package:chat_app/components/my_button.dart';
 import 'package:chat_app/screens/register_screen.dart';
+import 'package:chat_app/screens/profile_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -28,11 +29,17 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       await AuthService().signInWithEmail(email: email, password: password);
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('با موفقیت وارد شدید'),
           backgroundColor: Colors.green,
         ),
+      );
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const ProfileScreen()),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(

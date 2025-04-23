@@ -3,7 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  /// Register a new user
   Future<UserCredential?> signUpWithEmail({
     required String email,
     required String password,
@@ -19,7 +18,6 @@ class AuthService {
     }
   }
 
-  /// Sign in existing user
   Future<UserCredential?> signInWithEmail({
     required String email,
     required String password,
@@ -35,12 +33,10 @@ class AuthService {
     }
   }
 
-  /// Sign out current user
   Future<void> signOut() async {
     await _auth.signOut();
   }
 
-  /// Error handler (custom error message)
   String handleAuthError(FirebaseAuthException e) {
     switch (e.code) {
       case 'invalid-email':
