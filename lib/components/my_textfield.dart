@@ -13,7 +13,7 @@ class MyTextfield extends StatelessWidget {
   final String? initialValue;
 
   const MyTextfield({
-    Key? key,
+    super.key,
     required this.icon,
     required this.controller,
     this.validator,
@@ -24,7 +24,7 @@ class MyTextfield extends StatelessWidget {
     this.onChanged,
     this.enabled = true,
     this.initialValue,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +44,7 @@ class MyTextfield extends StatelessWidget {
         onChanged: onChanged,
         decoration: InputDecoration(
           prefixIcon: icon,
-          labelText: label,
+          labelText: label ?? hintText,
           labelStyle: const TextStyle(color: Colors.white),
           hintText: hintText,
           contentPadding: const EdgeInsets.symmetric(

@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:chat_app/screens/login_screen.dart';
-import 'package:chat_app/components/my_textfield.dart'; 
+import 'package:chat_app/components/my_textfield.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -22,7 +22,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final TextEditingController _emailController = TextEditingController();
 
   bool _isLoading = true;
-  bool _isEditing = false;
 
   @override
   void initState() {
@@ -88,7 +87,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         'updated_at': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 
-      setState(() => _isEditing = false);
       _showSnackBar('اطلاعات با موفقیت ذخیره شد');
     } catch (e) {
       _showSnackBar('خطا در ذخیره اطلاعات');
@@ -123,18 +121,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return AppBar(
       title: const Text('پروفایل'),
       actions: [
-        if (_isEditing)
-          IconButton(
-            icon: const Icon(Icons.save),
-            onPressed: _saveUserData,
-            tooltip: 'ذخیره تغییرات',
-          )
-        else
-          IconButton(
-            icon: const Icon(Icons.edit),
-            onPressed: () => setState(() => _isEditing = true),
-            tooltip: 'ویرایش پروفایل',
-          ),
+        IconButton(
+          icon: const Icon(Icons.check),
+          onPressed: _saveUserData,
+          tooltip: 'ذخیره تغییرات',
+        ),
         IconButton(
           icon: const Icon(Icons.logout),
           tooltip: 'خروج از حساب',
@@ -158,7 +149,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
+    return _buildProfileForm();
+  }
 
+  Widget _buildProfileForm() {
     return Form(
       key: _formKey,
       child: SingleChildScrollView(
@@ -166,60 +160,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            MyTextfield(
-              label: 'نام',
-              controller: _firstNameController,
-              icon: const Icon(Icons.person, color: Colors.white),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'لطفاً نام را وارد کنید';
-                }
-                return null;
-              },
-              onChanged: (value) {},
-              enabled: _isEditing,
-            ),
+            _buildFirstNameField(),
             const SizedBox(height: 20),
-            MyTextfield(
-              label: 'نام خانوادگی',
-              controller: _lastNameController,
-              icon: const Icon(Icons.person_outline, color: Colors.white),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'لطفاً نام خانوادگی را وارد کنید';
-                }
-                return null;
-              },
-              onChanged: (value) {},
-              enabled: _isEditing,
-            ),
+            _buildLastNameField(),
             const SizedBox(height: 20),
-            MyTextfield(
-              label: 'ایمیل',
-              controller: _emailController,
-              icon: const Icon(Icons.email, color: Colors.white),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'لطفاً ایمیل را وارد کنید';
-                }
-                return null;
-              },
-              onChanged: (value) {},
-              enabled: false,
-              keyboardType: TextInputType.emailAddress,
-            ),
-            if (_isEditing) ...[
-              const SizedBox(height: 30),
-              Center(
-                child: ElevatedButton(
-                  onPressed: _saveUserData,
-                  child: const Text('ذخیره تغییرات'),
-                ),
-              ),
-            ],
+            _buildEmailField(),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildFirstNameField() {
+    return MyTextfield(
+      label: 'نام',
+      controller: _firstNameController,
+      icon: const Icon(Icons.person, color: Colors.white),
+      onChanged: (value) {},
+    );
+  }
+
+  Widget _buildLastNameField() {
+    return MyTextfield(
+      label: 'نام خانوادگی',
+      controller: _lastNameController,
+      icon: const Icon(Icons.person_outline, color: Colors.white),
+      onChanged: (value) {},
+    );
+  }
+
+  Widget _buildEmailField() {
+    return MyTextfield(
+      label: 'ایمیل',
+      controller: _emailController,
+      icon: const Icon(Icons.email, color: Colors.white),
+      onChanged: (value) {},
+      enabled: false,
     );
   }
 

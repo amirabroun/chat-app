@@ -69,6 +69,68 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  Widget _buildLoginButton() {
+    return MyButton(
+      text: 'ورود',
+      onPressed: _loginUser,
+      color: Colors.blue,
+      textColor: Colors.white,
+    );
+  }
+
+  Widget _buildEmailField() {
+    return MyTextfield(
+      label: 'ایمیل',
+      hintText: 'example@domain.com',
+      controller: _emailController,
+      icon: const Icon(Icons.email, color: Colors.blue),
+      validator:
+          (value) => value?.isEmpty ?? true ? 'لطفاً ایمیل را وارد کنید' : null,
+      keyboardType: TextInputType.emailAddress,
+    );
+  }
+
+  Widget _buildPasswordField() {
+    return MyTextfield(
+      label: 'رمز عبور',
+      hintText: '******',
+      controller: _passwordController,
+      icon: const Icon(Icons.lock, color: Colors.blue),
+      validator:
+          (value) =>
+              value?.isEmpty ?? true ? 'لطفاً رمز عبور را وارد کنید' : null,
+      obscureText: true,
+    );
+  }
+
+  Widget _buildFormFields() {
+    return Column(
+      children: [
+        _buildEmailField(),
+        const SizedBox(height: 18),
+        _buildPasswordField(),
+      ],
+    );
+  }
+
+  Widget _buildForm() {
+    return Form(
+      key: _formKey,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _buildHeader(),
+          const SizedBox(height: 32),
+          _buildFormFields(),
+          const SizedBox(height: 24),
+          _buildLoginButton(),
+          const SizedBox(height: 16),
+          _buildRegisterLink(),
+        ],
+      ),
+    );
+  }
+
   Widget _buildHeader() {
     return Column(
       children: [
@@ -80,32 +142,6 @@ class _LoginScreenState extends State<LoginScreen> {
             color: Colors.blue,
             fontWeight: FontWeight.bold,
           ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFormFields() {
-    return Column(
-      children: [
-        MyTextfield(
-          hintText: 'ایمیل',
-          controller: _emailController,
-          icon: const Icon(Icons.email, color: Colors.blue),
-          validator:
-              (value) =>
-                  value?.isEmpty ?? true ? 'لطفاً ایمیل را وارد کنید' : null,
-          keyboardType: TextInputType.emailAddress,
-        ),
-        const SizedBox(height: 16),
-        MyTextfield(
-          hintText: 'رمز عبور',
-          controller: _passwordController,
-          icon: const Icon(Icons.lock, color: Colors.blue),
-          validator:
-              (value) =>
-                  value?.isEmpty ?? true ? 'لطفاً رمز عبور را وارد کنید' : null,
-          obscureText: true,
         ),
       ],
     );
@@ -130,26 +166,7 @@ class _LoginScreenState extends State<LoginScreen> {
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _buildHeader(),
-                const SizedBox(height: 32),
-                _buildFormFields(),
-                const SizedBox(height: 24),
-                MyButton(
-                  text: 'ورود',
-                  onPressed: _loginUser,
-                  color: Colors.blue,
-                  textColor: Colors.white,
-                ),
-                const SizedBox(height: 16),
-                _buildRegisterLink(),
-              ],
-            ),
-          ),
+          child: _buildForm(),
         ),
       ),
     );
