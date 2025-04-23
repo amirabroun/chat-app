@@ -14,10 +14,13 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final _formKey = GlobalKey<FormState>();
 
-  String _userName = '';
-  String _userEmail = '';
+  String _firstName = '';
+  String _lastName = '';
+  String _email = '';
   bool _isLoading = true;
+  bool _isEditing = false;
 
   @override
   void initState() {
@@ -51,9 +54,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _updateUserInfo(User user, Map<String, dynamic>? userData) {
     setState(() {
-      _userName = userData?['fullName']?.toString() ?? '';
-      _userEmail = user.email ?? '';
+      _firstName = userData?['first_name']?.toString() ?? '';
+      _lastName = userData?['last_name']?.toString() ?? '';
+      _email = user.email ?? '';
     });
+  }
+
+  Future<void> _saveUserData() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    try {
+      setState(() => _isLoading = true);
+      final user = _auth.currentUser;
+      if (user == null) {
+        _redirectToLogin();
+        return;
+      }
+
+      await _firestore.collection('users').doc(user.uid).set({
+        'first_name': _firstName,
+        'last_name': _lastName,
+        'email': _email,
+        'updated_at': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      setState(() => _isEditing = false);
+      _showSnackBar('اطلاعات با موفقیت ذخیره شد');
+    } catch (e) {
+      _showSnackBar('خطا در ذخیره اطلاعات');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   void _redirectToLogin() {
@@ -80,6 +113,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return AppBar(
       title: const Text('پروفایل'),
       actions: [
+        if (_isEditing)
+          IconButton(
+            icon: const Icon(Icons.save),
+            onPressed: _saveUserData,
+            tooltip: 'ذخیره تغییرات',
+          )
+        else
+          IconButton(
+            icon: const Icon(Icons.edit),
+            onPressed: () => setState(() => _isEditing = true),
+            tooltip: 'ویرایش پروفایل',
+          ),
         IconButton(
           icon: const Icon(Icons.logout),
           tooltip: 'خروج از حساب',
@@ -104,43 +149,73 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    return _buildProfileInfo();
-  }
-
-  Widget _buildProfileInfo() {
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (_userName.isNotEmpty)
-            _buildInfoItem(Icons.person, 'نام', _userName),
-          if (_userName.isNotEmpty) const SizedBox(height: 20),
-          if (_userEmail.isNotEmpty)
-            _buildInfoItem(Icons.email, 'ایمیل', _userEmail),
-        ],
+    return Form(
+      key: _formKey,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildTextField(
+              label: 'نام',
+              value: _firstName,
+              icon: Icons.person,
+              onChanged: (value) => _firstName = value,
+              enabled: _isEditing,
+            ),
+            const SizedBox(height: 20),
+            _buildTextField(
+              label: 'نام خانوادگی',
+              value: _lastName,
+              icon: Icons.person_outline,
+              onChanged: (value) => _lastName = value,
+              enabled: _isEditing,
+            ),
+            const SizedBox(height: 20),
+            _buildTextField(
+              label: 'ایمیل',
+              value: _email,
+              icon: Icons.email,
+              onChanged: (value) => _email = value,
+              enabled: false, 
+            ),
+            if (_isEditing) ...[
+              const SizedBox(height: 30),
+              Center(
+                child: ElevatedButton(
+                  onPressed: _saveUserData,
+                  child: const Text('ذخیره تغییرات'),
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildInfoItem(IconData icon, String label, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(icon, color: Colors.teal),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Text(value, style: const TextStyle(fontSize: 18)),
-        const Divider(thickness: 1.2),
-      ],
+  Widget _buildTextField({
+    required String label,
+    required String value,
+    required IconData icon,
+    required ValueChanged<String> onChanged,
+    bool enabled = true,
+  }) {
+    return TextFormField(
+      initialValue: value,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon),
+        border: const OutlineInputBorder(),
+      ),
+      onChanged: onChanged,
+      enabled: enabled,
+      validator: (value) {
+        if (label == 'ایمیل' && (value == null || value.isEmpty)) {
+          return 'لطفا ایمیل را وارد کنید';
+        }
+        return null;
+      },
     );
   }
 
