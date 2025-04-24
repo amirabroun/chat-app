@@ -69,7 +69,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     final snapshot = await FirebaseFirestore.instance.collection('users').get();
 
-    return snapshot.docs.where((doc) => doc.id != currentUser?.uid).toList();
+    return snapshot.docs
+        .where((DocumentSnapshot doc) => doc.id != currentUser?.uid)
+        .toList();
   }
 
   Future<Map<String, dynamic>?> _fetchUserData(String uid) async {
@@ -206,7 +208,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return const Center(child: CircularProgressIndicator());
   }
 
-  Widget _buildUsersListView(List<QueryDocumentSnapshot> users) {
+  Widget _buildUsersListView(List<DocumentSnapshot> users) {
     return ListView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -217,7 +219,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildUserListItem(QueryDocumentSnapshot user, BuildContext context) {
+  Widget _buildUserListItem(DocumentSnapshot user, BuildContext context) {
     final userData = user.data() as Map<String, dynamic>;
 
     return ListTile(
@@ -229,7 +231,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildUserAdminStatus(
-    QueryDocumentSnapshot user,
+    DocumentSnapshot user,
     Map<String, dynamic> userData,
     BuildContext context,
   ) {
@@ -246,7 +248,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _promoteToAdmin(
-    QueryDocumentSnapshot user,
+    DocumentSnapshot user,
     BuildContext context,
   ) async {
     try {
