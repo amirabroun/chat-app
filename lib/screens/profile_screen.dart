@@ -4,7 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:chat_app/screens/login_screen.dart';
 import 'package:chat_app/components/my_textfield.dart';
-import 'package:chat_app/components/my_button.dart';
+import 'package:chat_app/widgets/users_list_widget.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -18,11 +18,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final _formKey = GlobalKey<FormState>();
 
-  final TextEditingController _firstNameController = TextEditingController();
-  final TextEditingController _lastNameController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
+  final _firstNameController = TextEditingController();
+  final _lastNameController = TextEditingController();
+  final _emailController = TextEditingController();
 
   bool _isLoading = true;
+  bool _authIsAdmin = false;
 
   @override
   void initState() {
@@ -33,6 +34,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(appBar: _buildAppBar(), body: _buildBody());
+  }
+
+  Widget _buildBody() {
+    return _isLoading
+        ? const Center(child: CircularProgressIndicator())
+        : _buildProfileForm();
   }
 
   @override
@@ -55,23 +62,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _updateUserInfo(user, userData);
     } catch (_) {
       if (mounted) {
+        setState(() {
+          _authIsAdmin = false;
+          _isLoading = false;
+        });
         _showSnackBar('خطا در بارگذاری اطلاعات کاربر');
       }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
     }
-  }
-
-  Future<List<QueryDocumentSnapshot>> _fetchUsersData() async {
-    final currentUser = FirebaseAuth.instance.currentUser;
-
-    final snapshot = await FirebaseFirestore.instance.collection('users').get();
-
-    return snapshot.docs
-        .where((DocumentSnapshot doc) => doc.id != currentUser?.uid)
-        .toList();
   }
 
   Future<Map<String, dynamic>?> _fetchUserData(String uid) async {
@@ -80,11 +77,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _updateUserInfo(User user, Map<String, dynamic>? userData) {
-    setState(() {
-      _firstNameController.text = userData?['first_name']?.toString() ?? '';
-      _lastNameController.text = userData?['last_name']?.toString() ?? '';
-      _emailController.text = user.email ?? '';
-    });
+    if (mounted) {
+      setState(() {
+        _authIsAdmin = userData?['isAdmin'] == true;
+        _isLoading = false;
+        _firstNameController.text = userData?['first_name']?.toString() ?? '';
+        _lastNameController.text = userData?['last_name']?.toString() ?? '';
+        _emailController.text = user.email ?? '';
+      });
+    }
   }
 
   Future<void> _saveUserData() async {
@@ -147,10 +148,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _redirectToLogin();
   }
 
-  Widget _buildBody() {
-    return _isLoading ? _buildLoadingIndicator() : _buildProfileForm();
-  }
-
   Widget _buildProfileForm() {
     return Form(
       key: _formKey,
@@ -177,89 +174,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
               icon: const Icon(Icons.email, color: Colors.white),
               enabled: false,
             ),
-            const SizedBox(height: 35),
-            const Text('لیست کاربران'),
-            const SizedBox(height: 10),
-            _buildUsersList(),
+            _buildAdminContent(),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildUsersList() {
-    return FutureBuilder(
-      future: _fetchUsersData(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return _buildLoadingIndicator();
-        }
+  Widget _buildAdminContent() {
+    if (!_authIsAdmin) return const SizedBox.shrink();
 
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const Text('کاربری یافت نشد.');
-        }
-
-        return _buildUsersListView(snapshot.data!);
-      },
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: const [
+        SizedBox(height: 30),
+        Text('لیست کاربران'),
+        SizedBox(height: 10),
+        UsersListWidget(),
+      ],
     );
-  }
-
-  Widget _buildLoadingIndicator() {
-    return const Center(child: CircularProgressIndicator());
-  }
-
-  Widget _buildUsersListView(List<DocumentSnapshot> users) {
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: users.length,
-      itemBuilder: (context, index) {
-        return _buildUserListItem(users[index], context);
-      },
-    );
-  }
-
-  Widget _buildUserListItem(DocumentSnapshot user, BuildContext context) {
-    final userData = user.data() as Map<String, dynamic>;
-
-    return ListTile(
-      leading: const Icon(Icons.person_outline),
-      title: Text(userData['fullName'] ?? 'بدون نام'),
-      subtitle: Text(userData['email'] ?? 'بدون ایمیل'),
-      trailing: _buildUserAdminStatus(user, userData, context),
-    );
-  }
-
-  Widget _buildUserAdminStatus(
-    DocumentSnapshot user,
-    Map<String, dynamic> userData,
-    BuildContext context,
-  ) {
-    if (userData['isAdmin'] == true) {
-      return const Text('ادمین', style: TextStyle(color: Colors.green));
-    }
-
-    return MyButton(
-      text: 'ادمین کن',
-      onPressed: () => _promoteToAdmin(user, context),
-      color: Colors.blue,
-      textColor: Colors.white,
-    );
-  }
-
-  Future<void> _promoteToAdmin(
-    DocumentSnapshot user,
-    BuildContext context,
-  ) async {
-    try {
-      await FirebaseFirestore.instance.collection('users').doc(user.id).update({
-        'isAdmin': true,
-      });
-
-      _showSnackBar('ادمین شد');
-    } catch (e) {
-      _showSnackBar('خطا در ادمین کردن کاربر: ${e.toString()}');
-    }
   }
 
   Widget _buildField({
@@ -272,7 +205,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       label: label,
       controller: controller,
       icon: icon,
-      onChanged: (value) {},
       enabled: enabled,
     );
   }
