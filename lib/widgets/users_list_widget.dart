@@ -11,40 +11,74 @@ class UsersListWidget extends StatefulWidget {
 }
 
 class _UsersListWidgetState extends State<UsersListWidget> {
+  // Firebase instances
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  // State variables
   late Future<List<DocumentSnapshot>> _usersFuture;
 
   @override
   void initState() {
     super.initState();
-    _usersFuture = _fetchUsersData();
+    _usersFuture = _fetchUsers();
   }
 
+  // Main Build Methods
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [_buildUsersFutureBuilder()],
+      children: [_buildUsersList()],
     );
   }
 
-  Future<List<DocumentSnapshot>> _fetchUsersData() async {
-    final currentUser = FirebaseAuth.instance.currentUser;
-
-    final snapshot = await FirebaseFirestore.instance.collection('users').get();
+  // Data Methods
+  Future<List<DocumentSnapshot>> _fetchUsers() async {
+    final currentUser = _auth.currentUser;
+    final snapshot = await _firestore.collection('users').get();
 
     return snapshot.docs.where((doc) => doc.id != currentUser?.uid).toList();
   }
 
-  Widget _buildUsersFutureBuilder() {
-    return FutureBuilder(
+  Future<void> _promoteToAdmin(DocumentSnapshot user) async {
+    try {
+      await _firestore.collection('users').doc(user.id).update({
+        'isAdmin': true,
+        'updated_at': FieldValue.serverTimestamp(),
+      });
+
+      _showMessage('کاربر با موفقیت ادمین شد');
+    } catch (e) {
+      _showMessage('خطا در ادمین کردن کاربر: ${e.toString()}');
+    }
+  }
+
+  // UI Components
+  Widget _buildUsersList() {
+    return FutureBuilder<List<DocumentSnapshot>>(
       future: _usersFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
 
+        if (snapshot.hasError) {
+          return Center(
+            child: Text(
+              'خطا در دریافت اطلاعات کاربران',
+              style: const TextStyle(color: Colors.red),
+            ),
+          );
+        }
+
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const Text('کاربری یافت نشد.');
+          return const Center(
+            child: Text(
+              'کاربری یافت نشد',
+              style: TextStyle(color: Colors.grey),
+            ),
+          );
         }
 
         return _buildUsersListView(snapshot.data!);
@@ -57,29 +91,29 @@ class _UsersListWidgetState extends State<UsersListWidget> {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: users.length,
-      itemBuilder: (context, index) {
-        return _buildUserListItem(users[index]);
-      },
+      itemBuilder: (context, index) => _buildUserItem(users[index]),
     );
   }
 
-  Widget _buildUserListItem(DocumentSnapshot user) {
-    final userData = user.data() as Map<String, dynamic>;
+  Widget _buildUserItem(DocumentSnapshot user) {
+    final data = user.data() as Map<String, dynamic>;
 
     return ListTile(
       leading: const Icon(Icons.person_outline),
-      title: Text(userData['fullName'] ?? 'بدون نام'),
-      subtitle: Text(userData['email'] ?? 'بدون ایمیل'),
-      trailing: _buildUserAdminStatus(user, userData),
+      title: Text(data['fullName'] ?? 'بدون نام'),
+      subtitle: Text(data['email'] ?? 'بدون ایمیل'),
+      trailing: _buildAdminAction(user, data),
     );
   }
 
-  Widget _buildUserAdminStatus(
-    DocumentSnapshot user,
-    Map<String, dynamic> userData,
-  ) {
-    if (userData['isAdmin'] == true) {
-      return const Text('ادمین', style: TextStyle(color: Colors.green));
+  Widget _buildAdminAction(DocumentSnapshot user, Map<String, dynamic> data) {
+    bool isAdmin = data['isAdmin'] == true;
+
+    if (isAdmin) {
+      return const Text(
+        'ادمین',
+        style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
+      );
     }
 
     return MyButton(
@@ -90,25 +124,11 @@ class _UsersListWidgetState extends State<UsersListWidget> {
     );
   }
 
-  void _promoteToAdmin(DocumentSnapshot user) async {
-    try {
-      await FirebaseFirestore.instance.collection('users').doc(user.id).update({
-        'isAdmin': true,
-      });
+  void _showMessage(String message, {Color backgroundColor = Colors.green}) {
+    if (!mounted) return;
 
-      _showSnackBar('ادمین شد');
-
-      setState(() {
-        _usersFuture = _fetchUsersData();
-      });
-    } catch (e) {
-      _showSnackBar('خطا در ادمین کردن کاربر: ${e.toString()}');
-    }
-  }
-
-  void _showSnackBar(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: backgroundColor),
+    );
   }
 }
