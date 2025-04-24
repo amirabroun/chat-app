@@ -22,13 +22,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
 
-  List<Map<String, dynamic>> users = [];
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadUsers();
     _loadUserData();
   }
 
@@ -45,21 +43,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
-  Future<void> _loadUsers() async {
-    final snapshot = await FirebaseFirestore.instance.collection('users').get();
-    final data =
-        snapshot.docs.map((doc) {
-          final userData = doc.data();
-          userData['uid'] = doc.id;
-          return userData;
-        }).toList();
-
-    setState(() {
-      users = data;
-      _isLoading = false;
-    });
-  }
-
   Future<void> _loadUserData() async {
     try {
       final user = _auth.currentUser;
@@ -70,13 +53,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       final userData = await _fetchUserData(user.uid);
       _updateUserInfo(user, userData);
-    } catch (e) {
-      _handleLoadError();
+    } catch (_) {
+      if (mounted) {
+        _showSnackBar('خطا در بارگذاری اطلاعات کاربر');
+      }
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
       }
     }
+  }
+
+  Future<List<QueryDocumentSnapshot>> _fetchUsersData() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+
+    final snapshot = await FirebaseFirestore.instance.collection('users').get();
+
+    return snapshot.docs.where((doc) => doc.id != currentUser?.uid).toList();
   }
 
   Future<Map<String, dynamic>?> _fetchUserData(String uid) async {
@@ -129,12 +122,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  void _handleLoadError() {
-    if (mounted) {
-      _showSnackBar('خطا در بارگذاری اطلاعات کاربر');
-    }
-  }
-
   AppBar _buildAppBar() {
     return AppBar(
       title: const Text('پروفایل'),
@@ -155,12 +142,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _handleLogout() async {
     await AuthService().signOut();
-    if (mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
-      );
-    }
+    _redirectToLogin();
   }
 
   Widget _buildBody() {
@@ -175,12 +157,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildFirstNameField(),
+            _buildField(
+              label: 'نام',
+              controller: _firstNameController,
+              icon: const Icon(Icons.person, color: Colors.white),
+            ),
             const SizedBox(height: 20),
-            _buildLastNameField(),
+            _buildField(
+              label: 'نام خانوادگی',
+              controller: _lastNameController,
+              icon: const Icon(Icons.person_outline, color: Colors.white),
+            ),
             const SizedBox(height: 20),
-            _buildEmailField(),
-            const SizedBox(height: 30),
+            _buildField(
+              label: 'ایمیل',
+              controller: _emailController,
+              icon: const Icon(Icons.email, color: Colors.white),
+              enabled: false,
+            ),
+            const SizedBox(height: 35),
             const Text('لیست کاربران'),
             const SizedBox(height: 10),
             _buildUsersList(),
@@ -192,17 +187,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildUsersList() {
     return FutureBuilder(
-      future: FirebaseFirestore.instance.collection('users').get(),
+      future: _fetchUsersData(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return _buildLoadingIndicator();
         }
 
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
           return const Text('کاربری یافت نشد.');
         }
 
-        return _buildUsersListView(snapshot.data!.docs);
+        return _buildUsersListView(snapshot.data!);
       },
     );
   }
@@ -239,20 +234,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     BuildContext context,
   ) {
     if (userData['isAdmin'] == true) {
-      return _buildAdminLabel();
-    } else {
-      return _buildMakeAdminButton(user, context);
+      return const Text('ادمین', style: TextStyle(color: Colors.green));
     }
-  }
 
-  Widget _buildAdminLabel() {
-    return const Text('ادمین', style: TextStyle(color: Colors.green));
-  }
-
-  Widget _buildMakeAdminButton(
-    QueryDocumentSnapshot user,
-    BuildContext context,
-  ) {
     return MyButton(
       text: 'ادمین کن',
       onPressed: () => _promoteToAdmin(user, context),
@@ -270,45 +254,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
         'isAdmin': true,
       });
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('ادمین شد')));
-
-      if (context.mounted) {
-        (context as Element).markNeedsBuild();
-      }
+      _showSnackBar('ادمین شد');
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('خطا در ادمین کردن کاربر: ${e.toString()}')),
-      );
+      _showSnackBar('خطا در ادمین کردن کاربر: ${e.toString()}');
     }
   }
 
-  Widget _buildFirstNameField() {
+  Widget _buildField({
+    required String label,
+    required TextEditingController controller,
+    required Icon icon,
+    bool enabled = true,
+  }) {
     return MyTextfield(
-      label: 'نام',
-      controller: _firstNameController,
-      icon: const Icon(Icons.person, color: Colors.white),
+      label: label,
+      controller: controller,
+      icon: icon,
       onChanged: (value) {},
-    );
-  }
-
-  Widget _buildLastNameField() {
-    return MyTextfield(
-      label: 'نام خانوادگی',
-      controller: _lastNameController,
-      icon: const Icon(Icons.person_outline, color: Colors.white),
-      onChanged: (value) {},
-    );
-  }
-
-  Widget _buildEmailField() {
-    return MyTextfield(
-      label: 'ایمیل',
-      controller: _emailController,
-      icon: const Icon(Icons.email, color: Colors.white),
-      onChanged: (value) {},
-      enabled: false,
+      enabled: enabled,
     );
   }
 
