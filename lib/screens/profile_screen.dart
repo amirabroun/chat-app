@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:chat_app/screens/login_screen.dart';
 import 'package:chat_app/components/my_textfield.dart';
+import 'package:chat_app/widgets/users_list_widget.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -13,16 +14,19 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  // Controllers
+  final _firstNameController = TextEditingController();
+  final _lastNameController = TextEditingController();
+  final _emailController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
-  final TextEditingController _firstNameController = TextEditingController();
-  final TextEditingController _lastNameController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
+  // Firebase instances
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  // State variables
   bool _isLoading = true;
-  bool _isEditing = false;
+  bool _authIsAdmin = false;
 
   @override
   void initState() {
@@ -38,34 +42,127 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
+  // Main Build Methods
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: _buildAppBar(),
+      body:
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _buildProfileForm(),
+    );
+  }
+
+  Widget _buildProfileForm() {
+    return Form(
+      key: _formKey,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildProfileField(
+              label: 'نام',
+              controller: _firstNameController,
+              icon: Icons.person,
+            ),
+            const SizedBox(height: 20),
+            _buildProfileField(
+              label: 'نام خانوادگی',
+              controller: _lastNameController,
+              icon: Icons.person_outline,
+            ),
+            const SizedBox(height: 20),
+            _buildProfileField(
+              label: 'ایمیل',
+              controller: _emailController,
+              icon: Icons.email,
+              enabled: false,
+            ),
+            _buildAdminContent(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // UI Components
+  AppBar _buildAppBar() {
+    return AppBar(
+      title: const Text('پروفایل'),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.check),
+          onPressed: _saveUserData,
+          tooltip: 'ذخیره تغییرات',
+        ),
+        IconButton(
+          icon: const Icon(Icons.logout),
+          tooltip: 'خروج از حساب',
+          onPressed: _handleLogout,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildProfileField({
+    required String label,
+    required TextEditingController controller,
+    required IconData icon,
+    bool enabled = true,
+  }) {
+    return MyTextfield(
+      label: label,
+      controller: controller,
+      icon: Icon(icon, color: Colors.white),
+      enabled: enabled,
+    );
+  }
+
+  Widget _buildAdminContent() {
+    if (!_authIsAdmin) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: const [
+        SizedBox(height: 30),
+        Text('لیست کاربران'),
+        SizedBox(height: 10),
+        UsersListWidget(),
+      ],
+    );
+  }
+
+  // Data Methods
   Future<void> _loadUserData() async {
     try {
       final user = _auth.currentUser;
-      if (user == null) {
-        _redirectToLogin();
-        return;
-      }
+      if (user == null) return _redirectToLogin();
 
       final userData = await _fetchUserData(user.uid);
-      _updateUserInfo(user, userData);
+      if (userData == null) throw Exception('User data not found');
+
+      _updateUserState(user, userData);
     } catch (e) {
-      _handleLoadError();
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      debugPrint('Error loading user data: $e');
+      _handleDataError();
     }
   }
 
   Future<Map<String, dynamic>?> _fetchUserData(String uid) async {
     final doc = await _firestore.collection('users').doc(uid).get();
-    return doc.exists ? doc.data() : null;
+    return doc.data();
   }
 
-  void _updateUserInfo(User user, Map<String, dynamic>? userData) {
+  void _updateUserState(User user, Map<String, dynamic> userData) {
+    if (!mounted) return;
+
     setState(() {
-      _firstNameController.text = userData?['first_name']?.toString() ?? '';
-      _lastNameController.text = userData?['last_name']?.toString() ?? '';
+      _authIsAdmin = userData['isAdmin'] == true;
+      _isLoading = false;
+      _firstNameController.text = userData['first_name']?.toString() ?? '';
+      _lastNameController.text = userData['last_name']?.toString() ?? '';
       _emailController.text = user.email ?? '';
     });
   }
@@ -76,10 +173,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       setState(() => _isLoading = true);
       final user = _auth.currentUser;
-      if (user == null) {
-        _redirectToLogin();
-        return;
-      }
+      if (user == null) return _redirectToLogin();
 
       await _firestore.collection('users').doc(user.uid).set({
         'first_name': _firstNameController.text,
@@ -88,142 +182,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
         'updated_at': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 
-      setState(() => _isEditing = false);
       _showSnackBar('اطلاعات با موفقیت ذخیره شد');
     } catch (e) {
       _showSnackBar('خطا در ذخیره اطلاعات');
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  // Auth Method
+  Future<void> _handleLogout() async {
+    await AuthService().signOut();
+    _redirectToLogin();
   }
 
   void _redirectToLogin() {
-    if (mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
-      );
-    }
-  }
-
-  void _handleLoadError() {
-    if (mounted) {
-      _showSnackBar('خطا در بارگذاری اطلاعات کاربر');
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(appBar: _buildAppBar(), body: _buildBody());
-  }
-
-  AppBar _buildAppBar() {
-    return AppBar(
-      title: const Text('پروفایل'),
-      actions: [
-        if (_isEditing)
-          IconButton(
-            icon: const Icon(Icons.save),
-            onPressed: _saveUserData,
-            tooltip: 'ذخیره تغییرات',
-          )
-        else
-          IconButton(
-            icon: const Icon(Icons.edit),
-            onPressed: () => setState(() => _isEditing = true),
-            tooltip: 'ویرایش پروفایل',
-          ),
-        IconButton(
-          icon: const Icon(Icons.logout),
-          tooltip: 'خروج از حساب',
-          onPressed: _handleLogout,
-        ),
-      ],
+    if (!mounted) return;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
     );
   }
 
-  Future<void> _handleLogout() async {
-    await AuthService().signOut();
-    if (mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
-      );
-    }
-  }
-
-  Widget _buildBody() {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    return Form(
-      key: _formKey,
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            MyTextfield(
-              label: 'نام',
-              controller: _firstNameController,
-              icon: const Icon(Icons.person, color: Colors.white),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'لطفاً نام را وارد کنید';
-                }
-                return null;
-              },
-              onChanged: (value) {},
-              enabled: _isEditing,
-            ),
-            const SizedBox(height: 20),
-            MyTextfield(
-              label: 'نام خانوادگی',
-              controller: _lastNameController,
-              icon: const Icon(Icons.person_outline, color: Colors.white),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'لطفاً نام خانوادگی را وارد کنید';
-                }
-                return null;
-              },
-              onChanged: (value) {},
-              enabled: _isEditing,
-            ),
-            const SizedBox(height: 20),
-            MyTextfield(
-              label: 'ایمیل',
-              controller: _emailController,
-              icon: const Icon(Icons.email, color: Colors.white),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'لطفاً ایمیل را وارد کنید';
-                }
-                return null;
-              },
-              onChanged: (value) {},
-              enabled: false,
-              keyboardType: TextInputType.emailAddress,
-            ),
-            if (_isEditing) ...[
-              const SizedBox(height: 30),
-              Center(
-                child: ElevatedButton(
-                  onPressed: _saveUserData,
-                  child: const Text('ذخیره تغییرات'),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
+  // Utility Methods
+  void _handleDataError() {
+    if (!mounted) return;
+    setState(() {
+      _authIsAdmin = false;
+      _isLoading = false;
+    });
+    _showSnackBar('خطا در بارگذاری اطلاعات کاربر');
   }
 
   void _showSnackBar(String message) {
+    if (!mounted) return;
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));

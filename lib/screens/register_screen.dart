@@ -36,10 +36,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Future<void> _checkIfLoggedIn() async {
     if (FirebaseAuth.instance.currentUser != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const ProfileScreen()),
-        );
+        _navigateToProfile();
       });
     }
   }
@@ -125,63 +122,73 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
+  Widget _buildEmailField() {
+    return MyTextfield(
+      label: 'ایمیل',
+      hintText: 'example@domain.com',
+      controller: _emailController,
+      icon: const Icon(Icons.email, color: Colors.blue),
+      keyboardType: TextInputType.emailAddress,
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'لطفاً ایمیل را وارد کنید';
+        }
+        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+          return 'ایمیل معتبر نیست';
+        }
+        return null;
+      },
+    );
+  }
+
+  Widget _buildPasswordField() {
+    return MyTextfield(
+      label: 'رمز عبور',
+      hintText: 'حداقل ۶ کاراکتر',
+      controller: _passwordController,
+      icon: const Icon(Icons.lock, color: Colors.blue),
+      obscureText: true,
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'لطفاً رمز عبور را وارد کنید';
+        }
+        if (value.length < 6) {
+          return 'رمز عبور باید حداقل ۶ کاراکتر باشد';
+        }
+        return null;
+      },
+    );
+  }
+
+  Widget _buildConfirmPasswordField() {
+    return MyTextfield(
+      label: 'تکرار رمز عبور',
+      hintText: 'رمز عبور را تکرار کنید',
+      controller: _confirmPWController,
+      icon: const Icon(Icons.lock_outline, color: Colors.blue),
+      obscureText: true,
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'لطفاً تکرار رمز عبور را وارد کنید';
+        }
+        if (value != _passwordController.text) {
+          return 'رمز عبور و تکرار آن یکسان نیستند';
+        }
+        return null;
+      },
+    );
+  }
+
   Widget _buildFormFields() {
     return Form(
       key: _formKey,
       child: Column(
         children: [
-          MyTextfield(
-            label: 'ایمیل',
-            hintText: 'example@domain.com',
-            controller: _emailController,
-            icon: const Icon(Icons.email, color: Colors.blue),
-            keyboardType: TextInputType.emailAddress,
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'لطفاً ایمیل را وارد کنید';
-              }
-              if (!RegExp(
-                r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-              ).hasMatch(value)) {
-                return 'ایمیل معتبر نیست';
-              }
-              return null;
-            },
-          ),
+          _buildEmailField(),
           const SizedBox(height: 16),
-          MyTextfield(
-            label: 'رمز عبور',
-            hintText: 'حداقل ۶ کاراکتر',
-            controller: _passwordController,
-            icon: const Icon(Icons.lock, color: Colors.blue),
-            obscureText: true,
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'لطفاً رمز عبور را وارد کنید';
-              }
-              if (value.length < 6) {
-                return 'رمز عبور باید حداقل ۶ کاراکتر باشد';
-              }
-              return null;
-            },
-          ),
+          _buildPasswordField(),
           const SizedBox(height: 16),
-          MyTextfield(
-            label: 'تکرار رمز عبور',
-            hintText: 'رمز عبور را تکرار کنید',
-            controller: _confirmPWController,
-            icon: const Icon(Icons.lock_outline, color: Colors.blue),
-            obscureText: true,
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'لطفاً تکرار رمز عبور را وارد کنید';
-              }
-              if (value != _passwordController.text) {
-                return 'رمز عبور و تکرار آن یکسان نیستند';
-              }
-              return null;
-            },
-          ),
+          _buildConfirmPasswordField(),
         ],
       ),
     );
@@ -200,6 +207,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
+  Widget _buildRegisterButton() {
+    return MyButton(
+      text: 'ثبت‌نام',
+      onPressed: _registerUser,
+      color: Colors.blue,
+      textColor: Colors.white,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -214,12 +230,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               const SizedBox(height: 32),
               _buildFormFields(),
               const SizedBox(height: 24),
-              MyButton(
-                text: 'ثبت‌نام',
-                onPressed: _registerUser,
-                color: Colors.blue,
-                textColor: Colors.white,
-              ),
+              _buildRegisterButton(),
               const SizedBox(height: 16),
               _buildLoginLink(),
             ],
