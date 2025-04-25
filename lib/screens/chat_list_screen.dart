@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:chat_app/widgets/chat_item.dart';
-import 'package:chat_app/widgets/user_avatar.dart';
 import 'package:chat_app/services/firestore_service.dart';
 import 'package:chat_app/models/chat_model.dart';
 import 'package:chat_app/screens/profile_screen.dart';
@@ -96,30 +95,10 @@ class _ChatListScreenState extends State<ChatListScreen> {
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
-          _buildDrawerHeader(colorScheme),
           ListTile(
             leading: const Icon(Icons.person),
             title: const Text('Profile'),
             onTap: _navigateToProfile,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDrawerHeader(ColorScheme colorScheme) {
-    return DrawerHeader(
-      decoration: BoxDecoration(color: colorScheme.secondary),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          UserAvatar(
-            name: 'username placeholder',
-            avatarUrl: "https://example.com/avatar.jpg",
-          ),
-          Text(
-            'username placeholder',
-            style: TextStyle(color: colorScheme.onPrimary, fontSize: 20),
           ),
         ],
       ),

@@ -1,5 +1,5 @@
 import 'package:chat_app/services/auth_service.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:chat_app/services/firestore_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:chat_app/screens/login_screen.dart';
@@ -20,7 +20,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _formKey = GlobalKey<FormState>();
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   bool _isLoading = true;
   bool _authIsAdmin = false;
@@ -91,7 +90,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Form(
       key: _formKey,
       child: Padding(
-        padding: const EdgeInsets.all(20), // پدینگ 20 برای همه جهات
+        padding: const EdgeInsets.all(20),
         child: Column(children: formFields),
       ),
     );
@@ -111,73 +110,60 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Future<void> _loadUserData() async {
+  void _loadUserData() async {
+    setState(() => _isLoading = true);
     try {
       final user = _auth.currentUser;
-      if (user == null) return _redirectToLogin();
-
-      final userData = await _fetchUserData(user.uid);
-      if (userData == null) throw Exception('User data not found');
-
-      _updateUserState(user, userData);
-    } catch (e) {
-      if (!mounted) return;
-
-      _showMessage('خطا در بارگذاری اطلاعات کاربر : $e');
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
-  Future<Map<String, dynamic>?> _fetchUserData(String uid) async {
-    try {
-      final doc = await _firestore.collection('users').doc(uid).get();
-
-      if (!doc.exists) {
-        debugPrint('User document with ID $uid does not exist');
-        return null;
+      if (user == null) {
+        _redirectToLogin();
+        return;
       }
 
-      final data = doc.data();
-      debugPrint('Fetched user data for ID $uid: ${data.toString()}');
-      return data;
+      _updateUserState(await FirestoreService().getUser(user.uid));
     } catch (e) {
-      debugPrint('Error fetching user data for ID $uid: $e');
-      return null;
+      debugPrint(e.toString());
+      _showMessage('خطا در بارگذاری اطلاعات کاربر');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  void _updateUserState(User user, Map<String, dynamic> userData) {
+  void _updateUserState(user) {
     if (!mounted) return;
 
     setState(() {
-      _authIsAdmin = userData['isAdmin'] == true;
+      _emailController.text = user.email;
+      _firstNameController.text = user.firstName;
+      _lastNameController.text = user.lastName;
+      _authIsAdmin = user.isAdmin;
       _isLoading = false;
-      _firstNameController.text = userData['first_name']?.toString() ?? '';
-      _lastNameController.text = userData['last_name']?.toString() ?? '';
-      _emailController.text = user.email ?? '';
     });
   }
 
-  Future<void> _saveUserData() async {
+  void _saveUserData() async {
     if (!_formKey.currentState!.validate()) return;
+    setState(() => _isLoading = true);
 
     try {
-      setState(() => _isLoading = true);
       final user = _auth.currentUser;
-      if (user == null) return _redirectToLogin();
+      if (user == null) {
+        _redirectToLogin();
+        return;
+      }
 
-      await _firestore.collection('users').doc(user.uid).set({
-        'first_name': _firstNameController.text,
-        'last_name': _lastNameController.text,
-        'email': _emailController.text,
-        'updated_at': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      await FirestoreService().updateUser(
+        userId: user.uid,
+        firstName: _firstNameController.text,
+        lastName: _lastNameController.text,
+      );
 
       _showMessage('اطلاعات با موفقیت ذخیره شد');
     } catch (e) {
-      _showMessage('خطا در ذخیره اطلاعات');
+      debugPrint(e.toString());
+      _showMessage(
+        'خطای ناشناخته در ذخیره اطلاعات',
+        backgroundColor: Colors.red,
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

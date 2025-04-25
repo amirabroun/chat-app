@@ -20,6 +20,55 @@ class FirestoreService {
         toFirestore: (user, _) => user.toFirestore(),
       );
 
+  Future<void> createUser({
+    required String email,
+    required String password,
+    required String firstName,
+    required String lastName,
+    String imageUrl = '',
+    bool isAdmin = false,
+  }) async {
+    final userRef = _usersRef.doc();
+
+    final newUser = User(
+      userId: userRef.id,
+      email: email,
+      password: password,
+      firstName: firstName,
+      lastName: lastName,
+      imageUrl: imageUrl,
+      isAdmin: isAdmin,
+      updatedAt: DateTime.now(),
+      chatsIds: const [],
+    );
+
+    await userRef.set(newUser);
+  }
+
+  Future<void> updateUser({
+    required String userId,
+    String? email,
+    String? password,
+    String? firstName,
+    String? lastName,
+    String? imageUrl,
+    bool? isAdmin,
+  }) async {
+    final userRef = _usersRef.doc(userId);
+    final updates = <String, dynamic>{
+      'updated_at': FieldValue.serverTimestamp(),
+    };
+
+    if (email != null) updates['email'] = email;
+    if (password != null) updates['password'] = password;
+    if (firstName != null) updates['first_name'] = firstName;
+    if (lastName != null) updates['last_name'] = lastName;
+    if (imageUrl != null) updates['image_url'] = imageUrl;
+    if (isAdmin != null) updates['is_admin'] = isAdmin;
+
+    await userRef.update(updates);
+  }
+
   Future<User> getUser(String userId) async {
     final doc = await _firestore.collection('users').doc(userId).get();
     return User.fromFirestore(doc);
@@ -135,12 +184,12 @@ class FirestoreService {
           if (!userSnapshot.exists) return [];
 
           final user = userSnapshot.data()!;
-          final chatIds = user.chatsIds;
+          final chatsIds = user.chatsIds;
 
-          if (chatIds.isEmpty) return [];
+          if (chatsIds?.isEmpty ?? true) return [];
 
           final chatsQuery = _chatsRef
-              .where(FieldPath.documentId, whereIn: chatIds)
+              .where(FieldPath.documentId, whereIn: chatsIds)
               .orderBy('updated_at', descending: true);
 
           final chatsSnapshot = await chatsQuery.get();
@@ -150,9 +199,9 @@ class FirestoreService {
         .asyncExpand((chats) {
           if (chats.isEmpty) return Stream.value([]);
 
-          final chatIds = chats.map((c) => c.chatId).toList();
+          final chatsIds = chats.map((c) => c.chatId).toList();
           return _chatsRef
-              .where(FieldPath.documentId, whereIn: chatIds)
+              .where(FieldPath.documentId, whereIn: chatsIds)
               .orderBy('updated_at', descending: true)
               .snapshots()
               .map(

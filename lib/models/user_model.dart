@@ -2,44 +2,53 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class User {
   final String userId;
-  final String firstName;
-  final String lastName;
   final String email;
-  final String imageUrl;
-  final DateTime updatedAt;
-  final List<String> chatsIds;
+  final String password;
+  final String? firstName;
+  final String? lastName;
+  final String? imageUrl;
+  final bool? isAdmin;
+  final DateTime? updatedAt;
+  final List<String>? chatsIds;
 
   User({
     required this.userId,
-    required this.firstName,
-    required this.lastName,
     required this.email,
-    required this.imageUrl,
-    required this.updatedAt,
-    required this.chatsIds,
+    required this.password,
+    this.firstName,
+    this.lastName,
+    this.imageUrl,
+    this.isAdmin,
+    this.updatedAt,
+    this.chatsIds,
   });
 
   factory User.fromFirestore(DocumentSnapshot<Map<String, dynamic>> snapshot) {
     final data = snapshot.data()!;
     return User(
       userId: snapshot.id,
+      email: data['email'] ?? '',
+      password: data['password'] ?? '',
       firstName: data['first_name'],
       lastName: data['last_name'],
-      email: data['email'],
       imageUrl: data['image_url'],
-      updatedAt: (data['updated_at'] as Timestamp).toDate(),
-      chatsIds: List<String>.from(data['chats_ids']),
+      isAdmin: data['is_admin'] ?? false,
+      updatedAt: data['updated_at']?.toDate(),
+      chatsIds:
+          data['chat_ids'] != null ? List<String>.from(data['chat_ids']) : null,
     );
   }
 
   Map<String, dynamic> toFirestore() {
     return {
-      'first_name': firstName,
-      'last_name': lastName,
       'email': email,
-      'image_url': imageUrl,
+      'password': password,
+      if (firstName != null) 'first_name': firstName,
+      if (lastName != null) 'last_name': lastName,
+      if (imageUrl != null) 'image_url': imageUrl,
+      if (isAdmin != null) 'is_admin': isAdmin,
+      if (chatsIds != null) 'chat_ids': chatsIds,
       'updated_at': FieldValue.serverTimestamp(),
-      'chats_ids': chatsIds,
     };
   }
 }
