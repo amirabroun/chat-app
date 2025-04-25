@@ -14,17 +14,14 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  // Controllers
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
-  // Firebase instances
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // State variables
   bool _isLoading = true;
   bool _authIsAdmin = false;
 
@@ -42,81 +39,61 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
-  // Main Build Methods
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: _buildAppBar(),
-      body:
-          _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : _buildProfileForm(),
-    );
+    return Scaffold(appBar: _buildAppBar(), body: _buildProfileForm());
+  }
+
+  AppBar _buildAppBar() {
+    final actions = [
+      IconButton(
+        icon: const Icon(Icons.check),
+        onPressed: _saveUserData,
+        tooltip: 'ذخیره تغییرات',
+      ),
+      IconButton(
+        icon: const Icon(Icons.logout),
+        tooltip: 'خروج از حساب',
+        onPressed: _handleLogout,
+      ),
+    ];
+
+    return AppBar(title: const Text('پروفایل'), actions: actions);
   }
 
   Widget _buildProfileForm() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    final formFields = [
+      MyTextfield(
+        label: 'نام',
+        controller: _firstNameController,
+        icon: const Icon(Icons.person, color: Colors.white),
+      ),
+      const SizedBox(height: 20),
+      MyTextfield(
+        label: 'نام خانوادگی',
+        controller: _lastNameController,
+        icon: const Icon(Icons.person_outline, color: Colors.white),
+      ),
+      const SizedBox(height: 20),
+      MyTextfield(
+        label: 'ایمیل',
+        controller: _emailController,
+        icon: const Icon(Icons.email, color: Colors.white),
+        enabled: false,
+      ),
+      _buildAdminContent(),
+    ];
+
     return Form(
       key: _formKey,
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildProfileField(
-              label: 'نام',
-              controller: _firstNameController,
-              icon: Icons.person,
-            ),
-            const SizedBox(height: 20),
-            _buildProfileField(
-              label: 'نام خانوادگی',
-              controller: _lastNameController,
-              icon: Icons.person_outline,
-            ),
-            const SizedBox(height: 20),
-            _buildProfileField(
-              label: 'ایمیل',
-              controller: _emailController,
-              icon: Icons.email,
-              enabled: false,
-            ),
-            _buildAdminContent(),
-          ],
-        ),
+      child: Padding(
+        padding: const EdgeInsets.all(20), // پدینگ 20 برای همه جهات
+        child: Column(children: formFields),
       ),
-    );
-  }
-
-  // UI Components
-  AppBar _buildAppBar() {
-    return AppBar(
-      title: const Text('پروفایل'),
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.check),
-          onPressed: _saveUserData,
-          tooltip: 'ذخیره تغییرات',
-        ),
-        IconButton(
-          icon: const Icon(Icons.logout),
-          tooltip: 'خروج از حساب',
-          onPressed: _handleLogout,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildProfileField({
-    required String label,
-    required TextEditingController controller,
-    required IconData icon,
-    bool enabled = true,
-  }) {
-    return MyTextfield(
-      label: label,
-      controller: controller,
-      icon: Icon(icon, color: Colors.white),
-      enabled: enabled,
     );
   }
 
@@ -134,7 +111,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // Data Methods
   Future<void> _loadUserData() async {
     try {
       final user = _auth.currentUser;
@@ -145,14 +121,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       _updateUserState(user, userData);
     } catch (e) {
-      debugPrint('Error loading user data: $e');
-      _handleDataError();
+      if (!mounted) return;
+
+      _showMessage('خطا در بارگذاری اطلاعات کاربر : $e');
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
   Future<Map<String, dynamic>?> _fetchUserData(String uid) async {
-    final doc = await _firestore.collection('users').doc(uid).get();
-    return doc.data();
+    try {
+      final doc = await _firestore.collection('users').doc(uid).get();
+
+      if (!doc.exists) {
+        debugPrint('User document with ID $uid does not exist');
+        return null;
+      }
+
+      final data = doc.data();
+      debugPrint('Fetched user data for ID $uid: ${data.toString()}');
+      return data;
+    } catch (e) {
+      debugPrint('Error fetching user data for ID $uid: $e');
+      return null;
+    }
   }
 
   void _updateUserState(User user, Map<String, dynamic> userData) {
@@ -182,15 +175,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         'updated_at': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 
-      _showSnackBar('اطلاعات با موفقیت ذخیره شد');
+      _showMessage('اطلاعات با موفقیت ذخیره شد');
     } catch (e) {
-      _showSnackBar('خطا در ذخیره اطلاعات');
+      _showMessage('خطا در ذخیره اطلاعات');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  // Auth Method
   Future<void> _handleLogout() async {
     await AuthService().signOut();
     _redirectToLogin();
@@ -204,20 +196,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // Utility Methods
-  void _handleDataError() {
+  void _showMessage(String message, {Color backgroundColor = Colors.green}) {
     if (!mounted) return;
-    setState(() {
-      _authIsAdmin = false;
-      _isLoading = false;
-    });
-    _showSnackBar('خطا در بارگذاری اطلاعات کاربر');
-  }
 
-  void _showSnackBar(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: backgroundColor),
+    );
   }
 }

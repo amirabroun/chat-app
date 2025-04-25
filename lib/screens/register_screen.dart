@@ -15,14 +15,16 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPWController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPWController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _checkIfLoggedIn();
+    if (FirebaseAuth.instance.currentUser != null) {
+      _navigateToProfile();
+    }
   }
 
   @override
@@ -33,20 +35,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
-  Future<void> _checkIfLoggedIn() async {
-    if (FirebaseAuth.instance.currentUser != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _navigateToProfile();
-      });
-    }
-  }
-
   Future<void> _registerUser() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_passwordController.text != _confirmPWController.text) {
-      _showErrorMessage('رمز عبور و تکرار آن یکسان نیستند');
-      return;
-    }
 
     try {
       await AuthService().signUpWithEmail(
@@ -54,55 +44,34 @@ class _RegisterScreenState extends State<RegisterScreen> {
         password: _passwordController.text.trim(),
       );
 
-      _showSuccessMessage();
+      _showMessage('ثبت‌نام با موفقیت انجام شد');
       _navigateToProfile();
     } catch (e) {
-      _showErrorMessage(_getFriendlyErrorMessage(e));
+      _showMessage(e.toString(), backgroundColor: Colors.red);
     }
   }
 
-  String _getFriendlyErrorMessage(dynamic error) {
-    if (error is FirebaseAuthException) {
-      switch (error.code) {
-        case 'email-already-in-use':
-          return 'این ایمیل قبلاً ثبت شده است';
-        case 'weak-password':
-          return 'رمز عبور باید حداقل ۶ کاراکتر باشد';
-        case 'invalid-email':
-          return 'ایمیل وارد شده معتبر نیست';
-        default:
-          return 'خطا در ثبت‌نام: ${error.message}';
-      }
-    }
-    return 'خطای ناشناخته در ثبت‌نام';
-  }
-
-  void _showSuccessMessage() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('ثبت‌نام با موفقیت انجام شد'),
-        backgroundColor: Colors.green,
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildHeader(),
+              const SizedBox(height: 32),
+              _buildFormFields(),
+              const SizedBox(height: 24),
+              _buildRegisterButton(),
+              const SizedBox(height: 16),
+              _buildLoginLink(),
+            ],
+          ),
+        ),
       ),
-    );
-  }
-
-  void _showErrorMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.red),
-    );
-  }
-
-  void _navigateToProfile() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const ProfileScreen()),
-    );
-  }
-
-  void _navigateToLogin() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const LoginScreen()),
     );
   }
 
@@ -119,6 +88,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildFormFields() {
+    return Form(
+      key: _formKey,
+      child: Column(
+        children: [
+          _buildEmailField(),
+          const SizedBox(height: 16),
+          _buildPasswordField(),
+          const SizedBox(height: 16),
+          _buildConfirmPasswordField(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRegisterButton() {
+    return MyButton(
+      text: 'ثبت‌نام',
+      onPressed: _registerUser,
+      color: Colors.blue,
+      textColor: Colors.white,
     );
   }
 
@@ -179,64 +172,35 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  Widget _buildFormFields() {
-    return Form(
-      key: _formKey,
-      child: Column(
-        children: [
-          _buildEmailField(),
-          const SizedBox(height: 16),
-          _buildPasswordField(),
-          const SizedBox(height: 16),
-          _buildConfirmPasswordField(),
-        ],
-      ),
-    );
-  }
-
   Widget _buildLoginLink() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         TextButton(
-          onPressed: _navigateToLogin,
           child: const Text("ورود", style: TextStyle(color: Colors.blue)),
+          onPressed:
+              () => Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const LoginScreen()),
+              ),
         ),
         const Text("حساب کاربری داری؟"),
       ],
     );
   }
 
-  Widget _buildRegisterButton() {
-    return MyButton(
-      text: 'ثبت‌نام',
-      onPressed: _registerUser,
-      color: Colors.blue,
-      textColor: Colors.white,
+  void _showMessage(String message, {Color backgroundColor = Colors.green}) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: backgroundColor),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _buildHeader(),
-              const SizedBox(height: 32),
-              _buildFormFields(),
-              const SizedBox(height: 24),
-              _buildRegisterButton(),
-              const SizedBox(height: 16),
-              _buildLoginLink(),
-            ],
-          ),
-        ),
-      ),
+  void _navigateToProfile() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const ProfileScreen()),
     );
   }
 }
