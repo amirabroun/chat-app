@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:chat_app/widgets/user_avatar.dart';
 import 'package:chat_app/models/chat_model.dart';
+import 'package:chat_app/services/firestore_service.dart';
 
 class ChatItem extends StatelessWidget {
   final Chat chatItem;
@@ -11,34 +12,50 @@ class ChatItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return ListTile(
-      leading: UserAvatar(name: chatItem.name ?? _getParticipantNames(), avatarUrl: chatItem.imageUrl),
-      title: Text(
-        chatItem.name ?? _getParticipantNames(),
-        style: TextStyle(
-          color: colorScheme.onPrimary,
-          fontWeight: FontWeight.bold,
-        ),
-        overflow: TextOverflow.ellipsis,
-      ),
-      subtitle: Text(
-        _getLastMessagePreview(),
-        maxLines: 1,
-        overflow: TextOverflow.clip,
-        style: TextStyle(color: Colors.grey),
-      ),
-      trailing: Text(
-        _getMessageTimestamp(),
-        style: TextStyle(color: Colors.grey),
-      ),
+    return FutureBuilder<String>(
+      future: _getChatName(),
+      builder: (context, snapshot) {
+        return ListTile(
+          leading: UserAvatar(
+            name: snapshot.connectionState == ConnectionState.waiting ? "?": snapshot.data!,
+            avatarUrl: chatItem.imageUrl,
+          ),
+          title: Text(
+            snapshot.connectionState == ConnectionState.waiting ? "...": snapshot.data!,
+            style: TextStyle(
+              color: colorScheme.onPrimary,
+              fontWeight: FontWeight.bold,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+          subtitle: Text(
+            _getLastMessagePreview(),
+            maxLines: 1,
+            overflow: TextOverflow.clip,
+            style: TextStyle(color: Colors.grey),
+          ),
+          trailing: Text(
+            _getMessageTimestamp(),
+            style: TextStyle(color: Colors.grey),
+          ),
+        );
+      },
     );
   }
 
-  String _getParticipantNames() {
-    final otherParticipants = chatItem.participants
-        .where((id) => id != currentUserId)
-        .join(', ');
-    return otherParticipants.isNotEmpty ? otherParticipants : 'You';
+  Future<String> _getChatName() async {
+    if (chatItem.name != null) return chatItem.name!;
+
+    final otherIds =
+        chatItem.participants.where((id) => id != currentUserId).toList();
+
+    if (otherIds.isEmpty) return 'You';
+
+    final userFutures =
+        otherIds.map((id) => FirestoreService().getUser(id)).toList();
+    final users = await Future.wait(userFutures);
+
+    return users.map((user) => '${user.firstName} ${user.lastName}').join(', ');
   }
 
   String _getLastMessagePreview() {
