@@ -2,7 +2,7 @@ import 'package:chat_app/screens/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:chat_app/screens/profile_screen.dart';
+import 'package:chat_app/screens/chat_list_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,11 +24,11 @@ class ChatApp extends StatelessWidget {
   Widget getInitialScreen() {
     final user = FirebaseAuth.instance.currentUser;
 
-    if (user != null) {
-      return const ProfileScreen();
-    } else {
+    if (user == null) {
       return const LoginScreen();
     }
+
+    return const ChatListScreen();
   }
 
   @override

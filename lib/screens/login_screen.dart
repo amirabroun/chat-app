@@ -4,6 +4,7 @@ import 'package:chat_app/components/my_textfield.dart';
 import 'package:chat_app/components/my_button.dart';
 import 'package:chat_app/screens/register_screen.dart';
 import 'package:chat_app/screens/profile_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -16,6 +17,14 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+
+  @override
+  void initState() {
+    super.initState();
+    if (FirebaseAuth.instance.currentUser != null) {
+      _navigateToProfile();
+    }
+  }
 
   @override
   void dispose() {
@@ -141,16 +150,19 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       _showMessage('با موفقیت وارد شدید');
-
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const ProfileScreen()),
-        );
-      }
+      _navigateToProfile();
     } catch (e) {
       _showMessage(e.toString(), backgroundColor: Colors.red);
     }
+  }
+
+  void _navigateToProfile() {
+    if (!mounted) return;
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const ProfileScreen()),
+    );
   }
 
   void _showMessage(String message, {Color backgroundColor = Colors.green}) {

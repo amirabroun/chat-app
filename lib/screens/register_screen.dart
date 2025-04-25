@@ -198,6 +198,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   void _navigateToProfile() {
+    if (!mounted) return;
+
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => const ProfileScreen()),
