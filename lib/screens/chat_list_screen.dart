@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:chat_app/widgets/chat_item.dart';
 import 'package:chat_app/widgets/user_avatar.dart';
+import 'package:chat_app/services/firestore_service.dart';
+import 'package:chat_app/models/chat_model.dart';
 
 class ChatListScreen extends StatelessWidget {
-  final List<ChatItemData> chatItems;
+  final currentUserId = 'zIWl7N0WeYSlmFhSJjWtAEkYYAg1';
 
-  const ChatListScreen({super.key, required this.chatItems});
+  const ChatListScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -19,10 +21,27 @@ class ChatListScreen extends StatelessWidget {
       ),
       body: Container(
         decoration: BoxDecoration(color: colorScheme.primary),
-        child: ListView.builder(
-          itemCount: chatItems.length,
-          itemBuilder: (context, index) {
-            return ChatItem(chatItem: chatItems[index]);
+        child: StreamBuilder<List<Chat>>(
+          stream: FirestoreService().getUserChatsStream(currentUserId),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return Center(child: Text('Error: ${snapshot.error}'));
+            }
+
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            final chats = snapshot.data!;
+
+            if (chats.isEmpty) {
+              return const Center(child: Text('No chats yet! Start a conversation'));
+            }
+
+            return ListView.builder(
+              itemCount: chats.length,
+              itemBuilder: (context, index) => ChatItem(chatItem: chats[index])
+            );
           },
         ),
       ),
