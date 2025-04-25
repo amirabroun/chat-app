@@ -150,7 +150,12 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       _showMessage('با موفقیت وارد شدید');
-      _navigateToProfile();
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const ProfileScreen()),
+        );
+      }
     } catch (e) {
       _showMessage(e.toString(), backgroundColor: Colors.red);
     }
