@@ -74,6 +74,15 @@ class FirestoreService {
     return User.fromFirestore(doc);
   }
 
+  Future<List<User>> getUsers({String? excludeUserId}) async {
+    final snapshot = await _firestore.collection('users').get();
+
+    return snapshot.docs
+        .where((doc) => excludeUserId == null || doc.id != excludeUserId)
+        .map((doc) => User.fromFirestore(doc))
+        .toList();
+  }
+
   Stream<User> getUserStream(String userId) {
     return _firestore
         .collection('users')
