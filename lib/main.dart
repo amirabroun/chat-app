@@ -21,14 +21,24 @@ void main() async {
 class ChatApp extends StatelessWidget {
   const ChatApp({super.key});
 
-  Widget getInitialScreen() {
+  Widget _handleInitialRedirect(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
 
-    if (user == null) {
-      return const LoginScreen();
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final navigator = Navigator.of(context);
 
-    return const ChatListScreen();
+      if (user == null) {
+        navigator.pushReplacement(
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+        );
+      } else if (!navigator.canPop()) {
+        navigator.pushReplacement(
+          MaterialPageRoute(builder: (_) => const ChatListScreen()),
+        );
+      }
+    });
+
+    return const Scaffold(body: Center(child: CircularProgressIndicator()));
   }
 
   @override
@@ -39,12 +49,12 @@ class ChatApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.dark(
           brightness: Brightness.dark,
-          primary: Color.fromRGBO(10, 10, 10, 1),
-          onPrimary: Color.fromRGBO(250, 250, 250, 1),
-          secondary: Color.fromRGBO(23, 23, 23, 1),
+          primary: const Color.fromRGBO(10, 10, 10, 1),
+          onPrimary: const Color.fromRGBO(250, 250, 250, 1),
+          secondary: const Color.fromRGBO(23, 23, 23, 1),
         ),
       ),
-      home: getInitialScreen(),
+      home: Builder(builder: _handleInitialRedirect),
     );
   }
 }
