@@ -16,9 +16,9 @@ class FirestoreService {
   CollectionReference<User> get _usersRef => _firestore
       .collection('users')
       .withConverter<User>(
-    fromFirestore: (snapshot, _) => User.fromFirestore(snapshot),
-    toFirestore: (user, _) => user.toFirestore(),
-  );
+        fromFirestore: (snapshot, _) => User.fromFirestore(snapshot),
+        toFirestore: (user, _) => user.toFirestore(),
+      );
 
   Future<User> getUser(String userId) async {
     final doc = await _firestore.collection('users').doc(userId).get();
@@ -31,13 +31,6 @@ class FirestoreService {
         .doc(userId)
         .snapshots()
         .map((snapshot) => User.fromFirestore(snapshot));
-  }
-
-  Future<void> updateUserChatIds(String userId, List<String> chatIds) async {
-    await _firestore.collection('users').doc(userId).update({
-      'chats_ids': chatIds,
-      'updated_at': FieldValue.serverTimestamp(),
-    });
   }
 
   Stream<List<ChatMessage>> getChatMessagesStream(String chatId) {
@@ -102,11 +95,6 @@ class FirestoreService {
     }).toList();
   }
 
-  Future<List<String>> getUserChatIds(String userId) async {
-    final userDoc = await _firestore.collection('users').doc(userId).get();
-    return List<String>.from(userDoc.data()?['chats_ids'] ?? []);
-  }
-
   Future<void> createNewChat({
     required List<String> participantIds,
     required ChatType type,
@@ -140,40 +128,36 @@ class FirestoreService {
   }
 
   Stream<List<Chat>> getUserChatsStream(String userId) {
-    // 1. Get stream of user document
-    return _usersRef.doc(userId).snapshots().asyncMap((userSnapshot) async {
-      if (!userSnapshot.exists) return [];
+    return _usersRef
+        .doc(userId)
+        .snapshots()
+        .asyncMap((userSnapshot) async {
+          if (!userSnapshot.exists) return [];
 
-      // 2. Extract chat IDs from user document
-      final user = userSnapshot.data()!;
-      final chatIds = user.chatsIds;
+          final user = userSnapshot.data()!;
+          final chatIds = user.chatsIds;
 
-      if (chatIds.isEmpty) return [];
+          if (chatIds.isEmpty) return [];
 
-      // 3. Query chats collection with these IDs
-      final chatsQuery = _chatsRef
-          .where(FieldPath.documentId, whereIn: chatIds)
-          .orderBy('updated_at', descending: true);
+          final chatsQuery = _chatsRef
+              .where(FieldPath.documentId, whereIn: chatIds)
+              .orderBy('updated_at', descending: true);
 
-      // 4. Get initial data
-      final chatsSnapshot = await chatsQuery.get();
+          final chatsSnapshot = await chatsQuery.get();
 
-      // 5. Return combined stream
-      return chatsSnapshot.docs
-          .map((doc) => doc.data())
-          .toList();
-    }).asyncExpand((chats) {
-      // 6. Create real-time updates stream
-      if (chats.isEmpty) return Stream.value([]);
+          return chatsSnapshot.docs.map((doc) => doc.data()).toList();
+        })
+        .asyncExpand((chats) {
+          if (chats.isEmpty) return Stream.value([]);
 
-      final chatIds = chats.map((c) => c.chatId).toList();
-      return _chatsRef
-          .where(FieldPath.documentId, whereIn: chatIds)
-          .orderBy('updated_at', descending: true)
-          .snapshots()
-          .map((snapshot) => snapshot.docs
-          .map((doc) => doc.data())
-          .toList());
-    });
+          final chatIds = chats.map((c) => c.chatId).toList();
+          return _chatsRef
+              .where(FieldPath.documentId, whereIn: chatIds)
+              .orderBy('updated_at', descending: true)
+              .snapshots()
+              .map(
+                (snapshot) => snapshot.docs.map((doc) => doc.data()).toList(),
+              );
+        });
   }
 }
