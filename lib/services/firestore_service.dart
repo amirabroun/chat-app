@@ -69,29 +69,113 @@ class FirestoreService {
     await userRef.update(updates);
   }
 
-  Future<User> getUser(String userId) async {
-    final doc = await _firestore.collection('users').doc(userId).get();
-    return User.fromFirestore(doc);
+  Future<User> getUser({required String userId}) async {
+    try {
+      final snapshot = await _usersRef.doc(userId).get();
+
+      if (snapshot.exists) {
+        return snapshot.data()!;
+      } else {
+        throw Exception('User with ID $userId does not exist');
+      }
+    } on FirebaseException catch (e) {
+      throw Exception('Failed to fetch user: ${e.message}');
+    }
+  }
+
+  Stream<User> getUserStream({required String userId}) {
+    final userRef = _usersRef.doc(userId);
+
+    return userRef.snapshots().asyncMap((DocumentSnapshot<User> snapshot) {
+      if (snapshot.exists) {
+        return snapshot.data()!;
+      } else {
+        throw Exception('User with ID $userId does not exist');
+      }
+    });
   }
 
   Future<List<User>> getUsers({String? excludeUserId}) async {
-    final snapshot = await _firestore.collection('users').get();
+    try {
+      final snapshot = await _usersRef.get();
 
-    return snapshot.docs
-        .where((doc) => excludeUserId == null || doc.id != excludeUserId)
-        .map((doc) => User.fromFirestore(doc))
-        .toList();
+      if (snapshot.docs.isEmpty) return [];
+      return snapshot.docs
+          .map((doc) => doc.data())
+          .where((doc) => excludeUserId == null || doc.userId != excludeUserId)
+          .toList();
+    } on FirebaseException catch (e) {
+      throw Exception('Failed to fetch users: ${e.message}');
+    }
   }
 
-  Stream<User> getUserStream(String userId) {
-    return _firestore
-        .collection('users')
+  Future<void> createNewChat({
+    required List<String> participantIds,
+    required ChatType type,
+    String? name,
+    String? imageUrl,
+  }) async {
+    final chatRef = _chatsRef.doc();
+
+    await chatRef.set(
+      Chat(
+        chatId: chatRef.id,
+        participants: participantIds,
+        type: type,
+        name: type == ChatType.group ? name : null,
+        imageUrl: imageUrl,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        lastMessage: null,
+      ),
+    );
+
+    final batch = _firestore.batch();
+    for (final userId in participantIds) {
+      final userRef = _firestore.collection('users').doc(userId);
+      batch.update(userRef, {
+        'chats_ids': FieldValue.arrayUnion([chatRef.id]),
+        'updated_at': FieldValue.serverTimestamp(),
+      });
+    }
+    await batch.commit();
+  }
+
+  Stream<List<Chat>> getUserChatsStream({required String userId}) {
+    return _usersRef
         .doc(userId)
         .snapshots()
-        .map((snapshot) => User.fromFirestore(snapshot));
+        .asyncMap((userSnapshot) async {
+          if (!userSnapshot.exists) return [];
+
+          final user = userSnapshot.data()!;
+          final chatsIds = user.chatsIds;
+
+          if (chatsIds?.isEmpty ?? true) return [];
+
+          final chatsQuery = _chatsRef
+              .where(FieldPath.documentId, whereIn: chatsIds)
+              .orderBy('updated_at', descending: true);
+
+          final chatsSnapshot = await chatsQuery.get();
+
+          return chatsSnapshot.docs.map((doc) => doc.data()).toList();
+        })
+        .asyncExpand((chats) {
+          if (chats.isEmpty) return Stream.value([]);
+
+          final chatsIds = chats.map((c) => c.chatId).toList();
+          return _chatsRef
+              .where(FieldPath.documentId, whereIn: chatsIds)
+              .orderBy('updated_at', descending: true)
+              .snapshots()
+              .map(
+                (snapshot) => snapshot.docs.map((doc) => doc.data()).toList(),
+              );
+        });
   }
 
-  Stream<List<ChatMessage>> getChatMessagesStream(String chatId) {
+  Stream<List<ChatMessage>> getChatMessagesStream({required String chatId}) {
     return _firestore
         .collection('chats/$chatId/messages')
         .orderBy('timestamp', descending: true)
@@ -104,7 +188,11 @@ class FirestoreService {
         );
   }
 
-  Future<void> sendMessage(String chatId, String senderId, String text) async {
+  Future<void> sendMessage({
+    required String chatId,
+    required String senderId,
+    required String text,
+  }) async {
     final message = {
       'sender_id': senderId,
       'text': text,
@@ -151,71 +239,5 @@ class FirestoreService {
         doc as DocumentSnapshot<Map<String, dynamic>>,
       );
     }).toList();
-  }
-
-  Future<void> createNewChat({
-    required List<String> participantIds,
-    required ChatType type,
-    String? name,
-    String? imageUrl,
-  }) async {
-    final chatRef = _chatsRef.doc();
-
-    await chatRef.set(
-      Chat(
-        chatId: chatRef.id,
-        participants: participantIds,
-        type: type,
-        name: type == ChatType.group ? name : null,
-        imageUrl: imageUrl,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-        lastMessage: null,
-      ),
-    );
-
-    final batch = _firestore.batch();
-    for (final userId in participantIds) {
-      final userRef = _firestore.collection('users').doc(userId);
-      batch.update(userRef, {
-        'chats_ids': FieldValue.arrayUnion([chatRef.id]),
-        'updated_at': FieldValue.serverTimestamp(),
-      });
-    }
-    await batch.commit();
-  }
-
-  Stream<List<Chat>> getUserChatsStream(String userId) {
-    return _usersRef
-        .doc(userId)
-        .snapshots()
-        .asyncMap((userSnapshot) async {
-          if (!userSnapshot.exists) return [];
-
-          final user = userSnapshot.data()!;
-          final chatsIds = user.chatsIds;
-
-          if (chatsIds?.isEmpty ?? true) return [];
-
-          final chatsQuery = _chatsRef
-              .where(FieldPath.documentId, whereIn: chatsIds)
-              .orderBy('updated_at', descending: true);
-
-          final chatsSnapshot = await chatsQuery.get();
-
-          return chatsSnapshot.docs.map((doc) => doc.data()).toList();
-        })
-        .asyncExpand((chats) {
-          if (chats.isEmpty) return Stream.value([]);
-
-          final chatsIds = chats.map((c) => c.chatId).toList();
-          return _chatsRef
-              .where(FieldPath.documentId, whereIn: chatsIds)
-              .orderBy('updated_at', descending: true)
-              .snapshots()
-              .map(
-                (snapshot) => snapshot.docs.map((doc) => doc.data()).toList(),
-              );
-        });
   }
 }
