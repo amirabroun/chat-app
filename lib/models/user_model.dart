@@ -3,7 +3,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class User {
   final String userId;
   final String email;
-  final String password;
   final String? firstName;
   final String? lastName;
   final String? imageUrl;
@@ -14,7 +13,6 @@ class User {
   User({
     required this.userId,
     required this.email,
-    required this.password,
     this.firstName,
     this.lastName,
     this.imageUrl,
@@ -28,7 +26,6 @@ class User {
     return User(
       userId: snapshot.id,
       email: data['email'] ?? '',
-      password: data['password'] ?? '',
       firstName: data['first_name'],
       lastName: data['last_name'],
       imageUrl: data['image_url'],
@@ -44,7 +41,6 @@ class User {
   Map<String, dynamic> toFirestore() {
     return {
       'email': email,
-      'password': password,
       if (firstName != null) 'first_name': firstName,
       if (lastName != null) 'last_name': lastName,
       if (imageUrl != null) 'image_url': imageUrl,

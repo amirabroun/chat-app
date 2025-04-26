@@ -5,6 +5,7 @@ import 'package:chat_app/components/my_button.dart';
 import 'package:chat_app/screens/login_screen.dart';
 import 'package:chat_app/screens/profile_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:chat_app/services/firestore_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -167,14 +168,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     try {
-      await AuthService().signUpWithEmail(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
+      final email = _emailController.text.trim();
+      final password = _passwordController.text.trim();
+
+      final userCredential = await AuthService().signUpWithEmail(
+        email: email,
+        password: password,
+      );
+
+      if (!mounted) return;
+
+      await FirestoreService().createUser(
+        userId: userCredential!.user!.uid,
+        email: email,
       );
 
       _showMessage('ثبت‌نام با موفقیت انجام شد');
       _navigateToProfile();
     } catch (e) {
+      if (!mounted) return;
       _showMessage(e.toString(), backgroundColor: Colors.red);
     }
   }
