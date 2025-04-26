@@ -35,7 +35,9 @@ class User {
       isAdmin: data['is_admin'] ?? false,
       updatedAt: data['updated_at']?.toDate(),
       chatsIds:
-          data['chat_ids'] != null ? List<String>.from(data['chat_ids']) : null,
+          data['chats_ids'] != null
+              ? List<String>.from(data['chats_ids'])
+              : null,
     );
   }
 
@@ -47,7 +49,7 @@ class User {
       if (lastName != null) 'last_name': lastName,
       if (imageUrl != null) 'image_url': imageUrl,
       if (isAdmin != null) 'is_admin': isAdmin,
-      if (chatsIds != null) 'chat_ids': chatsIds,
+      if (chatsIds != null) 'chats_ids': chatsIds,
       'updated_at': FieldValue.serverTimestamp(),
     };
   }

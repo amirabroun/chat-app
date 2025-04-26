@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:chat_app/widgets/chat_item.dart';
-import 'package:chat_app/services/firestore_service.dart';
 import 'package:chat_app/models/chat_model.dart';
+import 'package:chat_app/services/firestore_service.dart';
 import 'package:chat_app/screens/profile_screen.dart';
+import 'package:chat_app/widgets/chat_item.dart';
 
 class ChatListScreen extends StatefulWidget {
   const ChatListScreen({super.key});
@@ -45,7 +45,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
   Widget _buildChatStream() {
     return StreamBuilder<List<Chat>>(
-      stream: FirestoreService().getUserChatsStream(currentUserId),
+      stream: FirestoreService().getUserChatsStream(userId: currentUserId),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return _buildErrorState(snapshot.error.toString());

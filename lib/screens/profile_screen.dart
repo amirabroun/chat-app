@@ -1,7 +1,7 @@
+import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:chat_app/services/auth_service.dart';
 import 'package:chat_app/services/firestore_service.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
 import 'package:chat_app/screens/login_screen.dart';
 import 'package:chat_app/components/my_textfield.dart';
 import 'package:chat_app/widgets/users_list_widget.dart';
@@ -119,7 +119,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return;
       }
 
-      _updateUserState(await FirestoreService().getUser(user.uid));
+      _updateUserState(await FirestoreService().getUser(userId: user.uid));
     } catch (e) {
       debugPrint(e.toString());
       _showMessage('خطا در بارگذاری اطلاعات کاربر');

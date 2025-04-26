@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:chat_app/widgets/user_avatar.dart';
 import 'package:chat_app/models/chat_model.dart';
 import 'package:chat_app/services/firestore_service.dart';
+import 'package:chat_app/widgets/user_avatar.dart';
 
 class ChatItem extends StatelessWidget {
   final Chat chatItem;
@@ -17,11 +17,16 @@ class ChatItem extends StatelessWidget {
       builder: (context, snapshot) {
         return ListTile(
           leading: UserAvatar(
-            name: snapshot.connectionState == ConnectionState.waiting ? "?": snapshot.data!,
+            name:
+                snapshot.connectionState == ConnectionState.waiting
+                    ? "?"
+                    : snapshot.data!,
             avatarUrl: chatItem.imageUrl,
           ),
           title: Text(
-            snapshot.connectionState == ConnectionState.waiting ? "...": snapshot.data!,
+            snapshot.connectionState == ConnectionState.waiting
+                ? "..."
+                : snapshot.data!,
             style: TextStyle(
               color: colorScheme.onPrimary,
               fontWeight: FontWeight.bold,
@@ -52,7 +57,7 @@ class ChatItem extends StatelessWidget {
     if (otherIds.isEmpty) return 'You';
 
     final userFutures =
-        otherIds.map((id) => FirestoreService().getUser(id)).toList();
+        otherIds.map((id) => FirestoreService().getUser(userId: id)).toList();
     final users = await Future.wait(userFutures);
 
     return users.map((user) => '${user.firstName} ${user.lastName}').join(', ');
