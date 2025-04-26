@@ -14,10 +14,10 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPWController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
 
   @override
   void initState() {
@@ -33,22 +33,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _passwordController.dispose();
     _confirmPWController.dispose();
     super.dispose();
-  }
-
-  Future<void> _registerUser() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    try {
-      await AuthService().signUpWithEmail(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
-
-      _showMessage('ثبت‌نام با موفقیت انجام شد');
-      _navigateToProfile();
-    } catch (e) {
-      _showMessage(e.toString(), backgroundColor: Colors.red);
-    }
   }
 
   @override
@@ -177,6 +161,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
         const Text("حساب کاربری داری؟"),
       ],
     );
+  }
+
+  void _registerUser() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    try {
+      await AuthService().signUpWithEmail(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+
+      _showMessage('ثبت‌نام با موفقیت انجام شد');
+      _navigateToProfile();
+    } catch (e) {
+      _showMessage(e.toString(), backgroundColor: Colors.red);
+    }
   }
 
   void _showMessage(

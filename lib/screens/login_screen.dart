@@ -15,8 +15,8 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
   @override
@@ -132,7 +132,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Future<void> _loginUser() async {
+  void _loginUser() async {
     if (!_formKey.currentState!.validate()) return;
 
     try {

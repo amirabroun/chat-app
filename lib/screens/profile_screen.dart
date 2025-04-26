@@ -14,10 +14,11 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  final _formKey = GlobalKey<FormState>();
+
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
   final _emailController = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
@@ -27,7 +28,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _loadUserData();
+    _loadAuthUser();
   }
 
   @override
@@ -114,7 +115,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  void _loadUserData() async {
+  void _loadAuthUser() async {
     setState(() => _isLoading = true);
     try {
       final user = _auth.currentUser;
@@ -173,7 +174,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  Future<void> _handleLogout() async {
+  void _handleLogout() async {
     await AuthService().signOut();
     _redirectToLogin();
   }
