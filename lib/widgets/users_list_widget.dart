@@ -83,8 +83,13 @@ class _UsersListWidgetState extends State<UsersListWidget> {
     return MyButton(
       text: 'ادمین کن',
       onPressed: () => _promoteToAdmin(user),
-      color: Colors.blue,
+      color: Colors.grey,
       textColor: Colors.white,
+      height: 38,
+      fontSize: 12,
+      borderRadius: 8,
+      elevation: 3,
+      padding: const EdgeInsets.symmetric(horizontal: 16), // padding افقی
     );
   }
 
@@ -109,11 +114,37 @@ class _UsersListWidgetState extends State<UsersListWidget> {
     }
   }
 
-  void _showMessage(String message, {Color backgroundColor = Colors.green}) {
+  void _showMessage(
+    String message, {
+    Color backgroundColor = Colors.green,
+    Duration duration = const Duration(seconds: 3),
+    SnackBarBehavior behavior = SnackBarBehavior.floating,
+    TextStyle? textStyle,
+    double? elevation,
+    EdgeInsetsGeometry? margin,
+  }) {
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: backgroundColor),
+      SnackBar(
+        content: Text(
+          message,
+          style: textStyle ?? const TextStyle(color: Colors.white),
+        ),
+        backgroundColor: backgroundColor,
+        duration: duration,
+        behavior: behavior,
+        elevation: elevation,
+        margin: margin,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        action: SnackBarAction(
+          label: 'تایید',
+          textColor: Colors.white,
+          onPressed: () {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          },
+        ),
+      ),
     );
   }
 }

@@ -45,23 +45,15 @@ class MyTextfield extends StatelessWidget {
         decoration: InputDecoration(
           prefixIcon: icon,
           labelText: label ?? hintText,
-          labelStyle: const TextStyle(color: Colors.white),
+          labelStyle: const TextStyle(color: Colors.black, fontSize: 15),
           hintText: hintText,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 16,
             vertical: 16,
           ),
-          hintStyle: TextStyle(color: Colors.grey.shade500),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(5),
-            borderSide: BorderSide(color: Colors.grey.shade300, width: 1.2),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(5),
-            borderSide: const BorderSide(color: Colors.blueAccent, width: 2),
-          ),
+          hintStyle: TextStyle(color: Colors.black),
           filled: true,
-          fillColor: Colors.black,
+          fillColor: Colors.blueGrey,
           errorStyle: const TextStyle(color: Colors.red),
         ),
         validator: validator ?? _defaultValidator,

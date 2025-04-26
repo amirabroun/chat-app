@@ -47,11 +47,10 @@ class ChatApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Chat App',
       theme: ThemeData(
-        colorScheme: ColorScheme.dark(
-          brightness: Brightness.dark,
-          primary: const Color.fromRGBO(10, 10, 10, 1),
-          onPrimary: const Color.fromRGBO(250, 250, 250, 1),
-          secondary: const Color.fromRGBO(23, 23, 23, 1),
+        colorScheme: ColorScheme.light(
+          surface: Colors.grey.shade50, // use for background
+          primary: Colors.blue.shade700,
+          secondary: Colors.blueGrey,
         ),
       ),
       home: Builder(builder: _handleInitialRedirect),

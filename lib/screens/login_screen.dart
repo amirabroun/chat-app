@@ -4,6 +4,7 @@ import 'package:chat_app/components/my_textfield.dart';
 import 'package:chat_app/components/my_button.dart';
 import 'package:chat_app/screens/register_screen.dart';
 import 'package:chat_app/screens/profile_screen.dart';
+import 'package:chat_app/screens/chat_list_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -55,7 +56,7 @@ class _LoginScreenState extends State<LoginScreen> {
           const SizedBox(height: 32),
           _buildFormFields(),
           const SizedBox(height: 24),
-          _buildLoginButton(),
+          MyButton(text: 'ورود', onPressed: _loginUser),
           const SizedBox(height: 16),
           _buildRegisterLink(),
         ],
@@ -94,7 +95,7 @@ class _LoginScreenState extends State<LoginScreen> {
       label: 'ایمیل',
       hintText: 'example@domain.com',
       controller: _emailController,
-      icon: const Icon(Icons.email, color: Colors.blue),
+      icon: const Icon(Icons.email),
       validator:
           (value) => value?.isEmpty ?? true ? 'لطفاً ایمیل را وارد کنید' : null,
       keyboardType: TextInputType.emailAddress,
@@ -106,20 +107,11 @@ class _LoginScreenState extends State<LoginScreen> {
       label: 'رمز عبور',
       hintText: '******',
       controller: _passwordController,
-      icon: const Icon(Icons.lock, color: Colors.blue),
+      icon: const Icon(Icons.lock),
       validator:
           (value) =>
               value?.isEmpty ?? true ? 'لطفاً رمز عبور را وارد کنید' : null,
       obscureText: true,
-    );
-  }
-
-  Widget _buildLoginButton() {
-    return MyButton(
-      text: 'ورود',
-      onPressed: _loginUser,
-      color: Colors.blue,
-      textColor: Colors.white,
     );
   }
 
@@ -153,7 +145,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const ProfileScreen()),
+          MaterialPageRoute(builder: (context) => const ChatListScreen()),
         );
       }
     } catch (e) {
@@ -170,11 +162,37 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  void _showMessage(String message, {Color backgroundColor = Colors.green}) {
+  void _showMessage(
+    String message, {
+    Color backgroundColor = Colors.green,
+    Duration duration = const Duration(seconds: 3),
+    SnackBarBehavior behavior = SnackBarBehavior.floating,
+    TextStyle? textStyle,
+    double? elevation,
+    EdgeInsetsGeometry? margin,
+  }) {
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: backgroundColor),
+      SnackBar(
+        content: Text(
+          message,
+          style: textStyle ?? const TextStyle(color: Colors.white),
+        ),
+        backgroundColor: backgroundColor,
+        duration: duration,
+        behavior: behavior,
+        elevation: elevation,
+        margin: margin,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        action: SnackBarAction(
+          label: 'تایید',
+          textColor: Colors.white,
+          onPressed: () {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          },
+        ),
+      ),
     );
   }
 }

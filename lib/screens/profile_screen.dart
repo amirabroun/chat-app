@@ -57,7 +57,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     ];
 
-    return AppBar(title: const Text('پروفایل'), actions: actions);
+    return AppBar(
+      title: const Text('پروفایل'),
+      actions: actions,
+      backgroundColor: Theme.of(context).colorScheme.primary,
+    );
   }
 
   Widget _buildProfileForm() {
@@ -69,19 +73,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
       MyTextfield(
         label: 'نام',
         controller: _firstNameController,
-        icon: const Icon(Icons.person, color: Colors.white),
+        icon: const Icon(Icons.person),
       ),
       const SizedBox(height: 20),
       MyTextfield(
         label: 'نام خانوادگی',
         controller: _lastNameController,
-        icon: const Icon(Icons.person_outline, color: Colors.white),
+        icon: const Icon(Icons.person_outline),
       ),
       const SizedBox(height: 20),
       MyTextfield(
         label: 'ایمیل',
         controller: _emailController,
-        icon: const Icon(Icons.email, color: Colors.white),
+        icon: const Icon(Icons.email),
         enabled: false,
       ),
       _buildAdminContent(),
@@ -182,11 +186,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  void _showMessage(String message, {Color backgroundColor = Colors.green}) {
+  void _showMessage(
+    String message, {
+    Color backgroundColor = Colors.green,
+    Duration duration = const Duration(seconds: 3),
+    SnackBarBehavior behavior = SnackBarBehavior.floating,
+    TextStyle? textStyle,
+    double? elevation,
+    EdgeInsetsGeometry? margin,
+  }) {
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: backgroundColor),
+      SnackBar(
+        content: Text(
+          message,
+          style: textStyle ?? const TextStyle(color: Colors.white),
+        ),
+        backgroundColor: backgroundColor,
+        duration: duration,
+        behavior: behavior,
+        elevation: elevation,
+        margin: margin,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        action: SnackBarAction(
+          label: 'تایید',
+          textColor: Colors.white,
+          onPressed: () {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          },
+        ),
+      ),
     );
   }
 }

@@ -17,28 +17,25 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: _buildAppBar(colorScheme),
-      body: _buildChatListBody(colorScheme),
-      drawer: _buildDrawer(colorScheme),
+      appBar: _buildAppBar(),
+      body: _buildChatListBody(),
+      drawer: _buildDrawer(),
     );
   }
 
-  AppBar _buildAppBar(ColorScheme colorScheme) {
+  AppBar _buildAppBar() {
     return AppBar(
-      backgroundColor: colorScheme.secondary,
+      backgroundColor: Theme.of(context).colorScheme.primary,
       actions: [
         IconButton(icon: const Icon(Icons.refresh), onPressed: _refreshChats),
       ],
     );
   }
 
-  Widget _buildChatListBody(ColorScheme colorScheme) {
+  Widget _buildChatListBody() {
     return Container(
-      decoration: BoxDecoration(color: colorScheme.primary),
+      decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface),
       child: _buildChatStream(),
     );
   }
@@ -87,10 +84,10 @@ class _ChatListScreenState extends State<ChatListScreen> {
     return const Center(child: Text('No chats yet! Start a conversation'));
   }
 
-  Widget _buildDrawer(ColorScheme colorScheme) {
+  Widget _buildDrawer() {
     return Drawer(
       width: 350,
-      backgroundColor: colorScheme.primary,
+      backgroundColor: Theme.of(context).colorScheme.secondary,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
       child: ListView(
         padding: EdgeInsets.zero,
