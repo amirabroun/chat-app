@@ -132,7 +132,7 @@ class FirestoreService {
 
     final batch = _firestore.batch();
     for (final userId in participantIds) {
-      final userRef = _firestore.collection('users').doc(userId);
+      final userRef = _usersRef.doc(userId);
       batch.update(userRef, {
         'chats_ids': FieldValue.arrayUnion([chatRef.id]),
         'updated_at': FieldValue.serverTimestamp(),
