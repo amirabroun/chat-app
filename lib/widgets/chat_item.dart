@@ -15,7 +15,6 @@ class ChatItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     return FutureBuilder<String>(
       future: _getChatName(),
       builder: (context, snapshot) {
@@ -32,7 +31,7 @@ class ChatItem extends StatelessWidget {
                 ? "..."
                 : snapshot.data!,
             style: TextStyle(
-              color: colorScheme.onPrimary,
+              color: Colors.black87,
               fontWeight: FontWeight.bold,
             ),
             overflow: TextOverflow.ellipsis,
