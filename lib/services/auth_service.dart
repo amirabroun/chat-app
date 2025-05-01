@@ -37,6 +37,10 @@ class AuthService {
     await _auth.signOut();
   }
 
+  String? getCurrentUserId() {
+    return _auth.currentUser?.uid;
+  }
+
   String handleAuthError(FirebaseAuthException e) {
     switch (e.code) {
       case 'invalid-email':

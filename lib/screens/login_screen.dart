@@ -136,16 +136,25 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     try {
-      await AuthService().signInWithEmail(
+      final credential = await AuthService().signInWithEmail(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
 
+      final String? uid = credential?.user?.uid;
+
+      if (uid == null) {
+        throw Exception('User UID is missing after login');
+      }
       _showMessage('با موفقیت وارد شدید');
       if (mounted) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const ChatListScreen()),
+          MaterialPageRoute(
+            builder:
+                (context) =>
+                    ChatListScreen(currentUserId: uid),
+          ),
         );
       }
     } catch (e) {

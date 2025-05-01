@@ -1,7 +1,7 @@
 import 'package:chat_app/screens/login_screen.dart';
+import 'package:chat_app/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:chat_app/screens/chat_list_screen.dart';
 
 void main() async {
@@ -22,18 +22,18 @@ class ChatApp extends StatelessWidget {
   const ChatApp({super.key});
 
   Widget _handleInitialRedirect(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
+    final userId = AuthService().getCurrentUserId();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final navigator = Navigator.of(context);
 
-      if (user == null) {
+      if (userId == null) {
         navigator.pushReplacement(
           MaterialPageRoute(builder: (_) => const LoginScreen()),
         );
       } else if (!navigator.canPop()) {
         navigator.pushReplacement(
-          MaterialPageRoute(builder: (_) => const ChatListScreen()),
+          MaterialPageRoute(builder: (_) => ChatListScreen(currentUserId: userId)),
         );
       }
     });

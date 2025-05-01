@@ -5,9 +5,13 @@ import 'package:chat_app/widgets/user_avatar.dart';
 
 class ChatItem extends StatelessWidget {
   final Chat chatItem;
-  final currentUserId = 'zIWl7N0WeYSlmFhSJjWtAEkYYAg1';
+  final String currentUserId;
 
-  const ChatItem({super.key, required this.chatItem});
+  const ChatItem({
+    super.key,
+    required this.chatItem,
+    required this.currentUserId,
+  });
 
   @override
   Widget build(BuildContext context) {

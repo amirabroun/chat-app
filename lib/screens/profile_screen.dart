@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:chat_app/services/auth_service.dart';
 import 'package:chat_app/services/firestore_service.dart';
 import 'package:chat_app/screens/login_screen.dart';
@@ -19,8 +18,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
   final _emailController = TextEditingController();
-
-  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   bool _isLoading = true;
   bool _authIsAdmin = false;
@@ -118,13 +115,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _loadAuthUser() async {
     setState(() => _isLoading = true);
     try {
-      final user = _auth.currentUser;
-      if (user == null) {
+      final userId = AuthService().getCurrentUserId();
+      if (userId == null) {
         _redirectToLogin();
         return;
       }
 
-      _updateUserState(await FirestoreService().getUser(userId: user.uid));
+      _updateUserState(await FirestoreService().getUser(userId: userId));
     } catch (e) {
       debugPrint(e.toString());
       _showMessage('خطا در بارگذاری اطلاعات کاربر');
@@ -150,14 +147,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final user = _auth.currentUser;
-      if (user == null) {
+      final userId = AuthService().getCurrentUserId();
+      if (userId == null) {
         _redirectToLogin();
         return;
       }
 
       await FirestoreService().updateUser(
-        userId: user.uid,
+        userId: userId,
         firstName: _firstNameController.text,
         lastName: _lastNameController.text,
       );
