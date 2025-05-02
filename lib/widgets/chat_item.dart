@@ -35,19 +35,20 @@ class _ChatItem extends State<ChatItem> {
     return FutureBuilder<String>(
       future: _getChatName(),
       builder: (context, snapshot) {
+        // This is temperery
+        if (!snapshot.hasData) {
+          return Center();
+        }
+        chatName = snapshot.data;
+
         return ListTile(
           onTap: _navigateToChatScreen,
           leading: UserAvatar(
-            name:
-            snapshot.connectionState == ConnectionState.waiting
-                ? "?"
-                : snapshot.data!,
+            name: snapshot.data!,
             avatarUrl: chatItem!.imageUrl,
           ),
           title: Text(
-            snapshot.connectionState == ConnectionState.waiting
-                ? "..."
-                : snapshot.data!,
+            snapshot.data!,
             style: TextStyle(
               color: Colors.black87,
               fontWeight: FontWeight.bold,
@@ -73,12 +74,12 @@ class _ChatItem extends State<ChatItem> {
     if (chatItem!.name != null) return chatItem!.name!;
 
     final otherIds =
-    chatItem!.participants.where((id) => id != currentUserId).toList();
+        chatItem!.participants.where((id) => id != currentUserId).toList();
 
     if (otherIds.isEmpty) return 'You';
 
     final userFutures =
-    otherIds.map((id) => FirestoreService().getUser(userId: id)).toList();
+        otherIds.map((id) => FirestoreService().getUser(userId: id)).toList();
     final users = await Future.wait(userFutures);
 
     return users.map((user) => '${user.firstName} ${user.lastName}').join(', ');
@@ -87,9 +88,7 @@ class _ChatItem extends State<ChatItem> {
   String _getLastMessagePreview() {
     final lastMessage = chatItem!.lastMessage;
     if (lastMessage == null) return 'No messages yet';
-    return '${lastMessage['sender_id'] == currentUserId
-        ? 'You: '
-        : ''} ${lastMessage['text']}';
+    return '${lastMessage['sender_id'] == currentUserId ? 'You: ' : ''} ${lastMessage['text']}';
   }
 
   String _getMessageTimestamp() {
@@ -109,7 +108,9 @@ class _ChatItem extends State<ChatItem> {
     Navigator.push(
       context,
       MaterialPageRoute(
-          builder: (context) => ChatScreen(chatName:'koskhol', chatItem: chatItem!)),
+        builder:
+            (context) => ChatScreen(chatName: chatName!, chatItem: chatItem!),
+      ),
     );
   }
 }

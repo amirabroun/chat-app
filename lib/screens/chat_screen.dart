@@ -18,6 +18,7 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   String? currentUserId;
+  List<ChatMessage> _messages = [];
   final TextEditingController _controller = TextEditingController();
 
   @override
@@ -70,16 +71,15 @@ class _ChatScreenState extends State<ChatScreen> {
         chatId: widget.chatItem.chatId,
       ),
       builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return _buildErrorState(snapshot.error.toString());
+        if (snapshot.hasData) {
+          _messages = snapshot.data!;
         }
 
-        if (!snapshot.hasData) {
+        if (_messages.isEmpty && !snapshot.hasData) {
           return _buildEmptyState();
         }
 
-        final messages = snapshot.data!;
-        return _buildMessageList(messages);
+        return _buildMessageList(_messages);
       },
     );
   }
@@ -142,16 +142,25 @@ class _ChatScreenState extends State<ChatScreen> {
     final userId = AuthService().getCurrentUserId();
 
     if (text.isEmpty) return;
+
+    setState(() {
+      _messages.insert(
+        0,
+        ChatMessage(
+          messageId: '',
+          senderId: userId!,
+          text: text,
+          timestamp: DateTime.now(),
+        ),
+      );
+    });
+
+    _controller.clear();
     FirestoreService().sendMessage(
       chatId: chatId,
       senderId: userId!,
       text: text,
     );
-    _controller.clear();
-  }
-
-  Widget _buildErrorState(String error) {
-    return Center(child: Text('Error: $error'));
   }
 
   Widget _buildEmptyState() {
