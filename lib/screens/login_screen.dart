@@ -52,10 +52,10 @@ class _LoginScreenState extends State<LoginScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           _buildHeader(),
-          const SizedBox(height: 32),
+          const SizedBox(height: 20),
           _buildFormFields(),
-          const SizedBox(height: 24),
-          MyButton(text: 'ورود', onPressed: _loginUser),
+          const SizedBox(height: 50),
+          MyButton(text: 'ورود', onPressed: _loginUser, width: 320,),
           const SizedBox(height: 16),
           _buildRegisterLink(),
         ],
@@ -64,14 +64,14 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _buildHeader() {
+    final colorScheme = Theme.of(context).colorScheme;
     return Column(
       children: [
-        const Icon(Icons.message, size: 80, color: Colors.blue),
+        Icon(Icons.message, size: 80, color: colorScheme.primary),
         const SizedBox(height: 16),
         Text(
           "خوش آمدید",
           style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-            color: Colors.blue,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -92,7 +92,6 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget _buildEmailField() {
     return MyTextfield(
       label: 'ایمیل',
-      hintText: 'example@domain.com',
       controller: _emailController,
       icon: const Icon(Icons.email),
       validator:
@@ -104,7 +103,6 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget _buildPasswordField() {
     return MyTextfield(
       label: 'رمز عبور',
-      hintText: '******',
       controller: _passwordController,
       icon: const Icon(Icons.lock),
       validator:
@@ -115,11 +113,12 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _buildRegisterLink() {
+    final colorScheme = Theme.of(context).colorScheme;
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         TextButton(
-          child: const Text("ثبت‌نام", style: TextStyle(color: Colors.blue)),
+          child: Text("ثبت‌نام", style: TextStyle(color: colorScheme.primary)),
           onPressed:
               () => Navigator.push(
                 context,
@@ -132,6 +131,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _loginUser() async {
+    final colorScheme = Theme.of(context).colorScheme;
     if (!_formKey.currentState!.validate()) return;
 
     try {
@@ -157,7 +157,7 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
     } catch (e) {
-      _showMessage(e.toString(), backgroundColor: Colors.red);
+      _showMessage(e.toString(), backgroundColor: colorScheme.errorContainer);
     }
   }
 

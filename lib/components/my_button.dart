@@ -17,27 +17,28 @@ class MyButton extends StatelessWidget {
     super.key,
     required this.text,
     required this.onPressed,
-    this.color = Colors.blue,
-    this.textColor = Colors.white,
+    this.color,
+    this.textColor,
     this.width,
     this.height = 48,
-    this.fontSize = 14,
+    this.fontSize = 20,
     this.padding = const EdgeInsets.symmetric(horizontal: 24),
-    this.borderRadius = 12,
+    this.borderRadius = 30,
     this.elevation = 2,
     this.isFullWidth = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return SizedBox(
       width: isFullWidth ? double.infinity : width,
       height: height,
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: color,
-          foregroundColor: textColor,
+          backgroundColor: colorScheme.primary,
+          foregroundColor: colorScheme.onPrimary,
           padding: padding,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(borderRadius),

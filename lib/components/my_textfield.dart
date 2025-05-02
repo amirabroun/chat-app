@@ -31,7 +31,7 @@ class MyTextfield extends StatelessWidget {
     if (initialValue != null && controller.text.isEmpty) {
       controller.text = initialValue!;
     }
-
+    final colorScheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 25),
       child: TextFormField(
@@ -40,21 +40,22 @@ class MyTextfield extends StatelessWidget {
         obscureText: obscureText,
         keyboardType: keyboardType,
         enabled: enabled,
-        cursorColor: Colors.white,
+        cursorColor: colorScheme.onSurface,
         onChanged: onChanged,
         decoration: InputDecoration(
           prefixIcon: icon,
           labelText: label ?? hintText,
-          labelStyle: const TextStyle(color: Colors.black, fontSize: 15),
+          labelStyle: TextStyle(color: colorScheme.onSurface, fontSize: 15),
           hintText: hintText,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 16,
             vertical: 16,
           ),
-          hintStyle: TextStyle(color: Colors.black),
+          hintStyle: TextStyle(color: colorScheme.onSurface),
           filled: true,
-          fillColor: Colors.blueGrey,
-          errorStyle: const TextStyle(color: Colors.red),
+          hoverColor: Colors.transparent,
+          fillColor: colorScheme.surface,
+          errorStyle: TextStyle(color: colorScheme.error),
         ),
         validator: validator ?? _defaultValidator,
       ),

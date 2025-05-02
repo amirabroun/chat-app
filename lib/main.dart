@@ -3,6 +3,7 @@ import 'package:chat_app/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:chat_app/screens/chat_list_screen.dart';
+import 'package:chat_app/constant/colors.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -46,13 +47,7 @@ class ChatApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Chat App',
-      theme: ThemeData(
-        colorScheme: ColorScheme.light(
-          surface: Colors.grey.shade50, // use for background
-          primary: Colors.blue.shade700,
-          secondary: Colors.blueGrey,
-        ),
-      ),
+      theme: MaterialTheme(TextTheme()).light(),
       home: Builder(builder: _handleInitialRedirect),
     );
   }
