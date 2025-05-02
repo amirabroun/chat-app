@@ -1,11 +1,10 @@
-import 'package:chat_app/services/auth_service.dart';
 import 'package:flutter/material.dart';
+import 'package:chat_app/services/auth_service.dart';
 import 'package:chat_app/components/my_textfield.dart';
 import 'package:chat_app/components/my_button.dart';
 import 'package:chat_app/screens/register_screen.dart';
 import 'package:chat_app/screens/profile_screen.dart';
 import 'package:chat_app/screens/chat_list_screen.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -22,7 +21,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
-    if (FirebaseAuth.instance.currentUser != null) {
+    if (AuthService().getCurrentUserId() != null) {
       _navigateToProfile();
     }
   }

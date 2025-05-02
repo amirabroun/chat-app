@@ -1,11 +1,10 @@
-import 'package:chat_app/services/auth_service.dart';
 import 'package:flutter/material.dart';
+import 'package:chat_app/services/auth_service.dart';
+import 'package:chat_app/services/firestore_service.dart';
 import 'package:chat_app/components/my_textfield.dart';
 import 'package:chat_app/components/my_button.dart';
 import 'package:chat_app/screens/login_screen.dart';
 import 'package:chat_app/screens/profile_screen.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:chat_app/services/firestore_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -23,7 +22,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   void initState() {
     super.initState();
-    if (FirebaseAuth.instance.currentUser != null) {
+    if (AuthService().getCurrentUserId() != null) {
       _navigateToProfile();
     }
   }
@@ -227,7 +226,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   void _navigateToProfile() {
     if (!mounted) return;
-
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => const ProfileScreen()),

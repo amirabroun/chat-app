@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:chat_app/services/auth_service.dart';
 import 'package:chat_app/services/firestore_service.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:chat_app/components/my_button.dart';
 
 class UsersListWidget extends StatefulWidget {
@@ -11,14 +11,13 @@ class UsersListWidget extends StatefulWidget {
 }
 
 class _UsersListWidgetState extends State<UsersListWidget> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
   late Future<List> _usersFuture;
 
   @override
   void initState() {
     super.initState();
     _usersFuture = FirestoreService().getUsers(
-      excludeUserId: _auth.currentUser?.uid,
+      excludeUserId: AuthService().getCurrentUserId(),
     );
   }
 
@@ -89,7 +88,7 @@ class _UsersListWidgetState extends State<UsersListWidget> {
       fontSize: 12,
       borderRadius: 8,
       elevation: 3,
-      padding: const EdgeInsets.symmetric(horizontal: 16), 
+      padding: const EdgeInsets.symmetric(horizontal: 16),
     );
   }
 
@@ -107,7 +106,7 @@ class _UsersListWidgetState extends State<UsersListWidget> {
       if (mounted) {
         setState(() {
           _usersFuture = FirestoreService().getUsers(
-            excludeUserId: _auth.currentUser?.uid,
+            excludeUserId: AuthService().getCurrentUserId(),
           );
         });
       }
