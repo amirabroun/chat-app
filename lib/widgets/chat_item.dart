@@ -1,34 +1,55 @@
 import 'package:flutter/material.dart';
-import 'package:chat_app/models/chat_model.dart';
-import 'package:chat_app/services/firestore_service.dart';
 import 'package:chat_app/widgets/user_avatar.dart';
+import 'package:chat_app/services/firestore_service.dart';
+import 'package:chat_app/screens/chat_screen.dart';
+import 'package:chat_app/models/chat_model.dart';
 
-class ChatItem extends StatelessWidget {
+class ChatItem extends StatefulWidget {
   final Chat chatItem;
-  final currentUserId = 'zIWl7N0WeYSlmFhSJjWtAEkYYAg1';
+  final String currentUserId;
 
-  const ChatItem({super.key, required this.chatItem});
+  const ChatItem({
+    super.key,
+    required this.chatItem,
+    required this.currentUserId,
+  });
+
+  @override
+  State<ChatItem> createState() => _ChatItem();
+}
+
+class _ChatItem extends State<ChatItem> {
+  Chat? chatItem;
+  String? chatName;
+  String? currentUserId;
+
+  @override
+  void initState() {
+    super.initState();
+    chatItem = widget.chatItem;
+    currentUserId = widget.currentUserId;
+  }
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     return FutureBuilder<String>(
       future: _getChatName(),
       builder: (context, snapshot) {
         return ListTile(
+          onTap: _navigateToChatScreen,
           leading: UserAvatar(
             name:
-                snapshot.connectionState == ConnectionState.waiting
-                    ? "?"
-                    : snapshot.data!,
-            avatarUrl: chatItem.imageUrl,
+            snapshot.connectionState == ConnectionState.waiting
+                ? "?"
+                : snapshot.data!,
+            avatarUrl: chatItem!.imageUrl,
           ),
           title: Text(
             snapshot.connectionState == ConnectionState.waiting
                 ? "..."
                 : snapshot.data!,
             style: TextStyle(
-              color: colorScheme.onPrimary,
+              color: Colors.black87,
               fontWeight: FontWeight.bold,
             ),
             overflow: TextOverflow.ellipsis,
@@ -49,29 +70,31 @@ class ChatItem extends StatelessWidget {
   }
 
   Future<String> _getChatName() async {
-    if (chatItem.name != null) return chatItem.name!;
+    if (chatItem!.name != null) return chatItem!.name!;
 
     final otherIds =
-        chatItem.participants.where((id) => id != currentUserId).toList();
+    chatItem!.participants.where((id) => id != currentUserId).toList();
 
     if (otherIds.isEmpty) return 'You';
 
     final userFutures =
-        otherIds.map((id) => FirestoreService().getUser(userId: id)).toList();
+    otherIds.map((id) => FirestoreService().getUser(userId: id)).toList();
     final users = await Future.wait(userFutures);
 
     return users.map((user) => '${user.firstName} ${user.lastName}').join(', ');
   }
 
   String _getLastMessagePreview() {
-    final lastMessage = chatItem.lastMessage;
+    final lastMessage = chatItem!.lastMessage;
     if (lastMessage == null) return 'No messages yet';
-    return '${lastMessage['sender_id'] == currentUserId ? 'You: ' : ''} ${lastMessage['text']}';
+    return '${lastMessage['sender_id'] == currentUserId
+        ? 'You: '
+        : ''} ${lastMessage['text']}';
   }
 
   String _getMessageTimestamp() {
     final now = DateTime.now();
-    final time = chatItem.updatedAt;
+    final time = chatItem!.updatedAt;
     final difference = now.difference(time);
 
     if (difference.inDays > 7) {
@@ -80,5 +103,13 @@ class ChatItem extends StatelessWidget {
       return '${difference.inDays}d';
     }
     return '${time.hour}:${time.minute.toString().padLeft(2, '0')}';
+  }
+
+  void _navigateToChatScreen() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+          builder: (context) => ChatScreen(chatName:'koskhol', chatItem: chatItem!)),
+    );
   }
 }

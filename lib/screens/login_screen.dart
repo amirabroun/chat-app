@@ -1,10 +1,10 @@
-import 'package:chat_app/services/auth_service.dart';
 import 'package:flutter/material.dart';
+import 'package:chat_app/services/auth_service.dart';
 import 'package:chat_app/components/my_textfield.dart';
 import 'package:chat_app/components/my_button.dart';
 import 'package:chat_app/screens/register_screen.dart';
 import 'package:chat_app/screens/profile_screen.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:chat_app/screens/chat_list_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -14,14 +14,14 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
   @override
   void initState() {
     super.initState();
-    if (FirebaseAuth.instance.currentUser != null) {
+    if (AuthService().getCurrentUserId() != null) {
       _navigateToProfile();
     }
   }
@@ -55,7 +55,7 @@ class _LoginScreenState extends State<LoginScreen> {
           const SizedBox(height: 32),
           _buildFormFields(),
           const SizedBox(height: 24),
-          _buildLoginButton(),
+          MyButton(text: 'ورود', onPressed: _loginUser),
           const SizedBox(height: 16),
           _buildRegisterLink(),
         ],
@@ -94,7 +94,7 @@ class _LoginScreenState extends State<LoginScreen> {
       label: 'ایمیل',
       hintText: 'example@domain.com',
       controller: _emailController,
-      icon: const Icon(Icons.email, color: Colors.blue),
+      icon: const Icon(Icons.email),
       validator:
           (value) => value?.isEmpty ?? true ? 'لطفاً ایمیل را وارد کنید' : null,
       keyboardType: TextInputType.emailAddress,
@@ -106,20 +106,11 @@ class _LoginScreenState extends State<LoginScreen> {
       label: 'رمز عبور',
       hintText: '******',
       controller: _passwordController,
-      icon: const Icon(Icons.lock, color: Colors.blue),
+      icon: const Icon(Icons.lock),
       validator:
           (value) =>
               value?.isEmpty ?? true ? 'لطفاً رمز عبور را وارد کنید' : null,
       obscureText: true,
-    );
-  }
-
-  Widget _buildLoginButton() {
-    return MyButton(
-      text: 'ورود',
-      onPressed: _loginUser,
-      color: Colors.blue,
-      textColor: Colors.white,
     );
   }
 
@@ -140,20 +131,29 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Future<void> _loginUser() async {
+  void _loginUser() async {
     if (!_formKey.currentState!.validate()) return;
 
     try {
-      await AuthService().signInWithEmail(
+      final credential = await AuthService().signInWithEmail(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
 
+      final String? uid = credential?.user?.uid;
+
+      if (uid == null) {
+        throw Exception('User UID is missing after login');
+      }
       _showMessage('با موفقیت وارد شدید');
       if (mounted) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const ProfileScreen()),
+          MaterialPageRoute(
+            builder:
+                (context) =>
+                    ChatListScreen(currentUserId: uid),
+          ),
         );
       }
     } catch (e) {
@@ -170,11 +170,37 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  void _showMessage(String message, {Color backgroundColor = Colors.green}) {
+  void _showMessage(
+    String message, {
+    Color backgroundColor = Colors.green,
+    Duration duration = const Duration(seconds: 3),
+    SnackBarBehavior behavior = SnackBarBehavior.floating,
+    TextStyle? textStyle,
+    double? elevation,
+    EdgeInsetsGeometry? margin,
+  }) {
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: backgroundColor),
+      SnackBar(
+        content: Text(
+          message,
+          style: textStyle ?? const TextStyle(color: Colors.white),
+        ),
+        backgroundColor: backgroundColor,
+        duration: duration,
+        behavior: behavior,
+        elevation: elevation,
+        margin: margin,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        action: SnackBarAction(
+          label: 'تایید',
+          textColor: Colors.white,
+          onPressed: () {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          },
+        ),
+      ),
     );
   }
 }

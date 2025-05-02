@@ -1,10 +1,10 @@
-import 'package:chat_app/services/auth_service.dart';
 import 'package:flutter/material.dart';
+import 'package:chat_app/services/auth_service.dart';
+import 'package:chat_app/services/firestore_service.dart';
 import 'package:chat_app/components/my_textfield.dart';
 import 'package:chat_app/components/my_button.dart';
 import 'package:chat_app/screens/login_screen.dart';
 import 'package:chat_app/screens/profile_screen.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -14,15 +14,15 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPWController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
 
   @override
   void initState() {
     super.initState();
-    if (FirebaseAuth.instance.currentUser != null) {
+    if (AuthService().getCurrentUserId() != null) {
       _navigateToProfile();
     }
   }
@@ -35,26 +35,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
-  Future<void> _registerUser() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    try {
-      await AuthService().signUpWithEmail(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
-
-      _showMessage('ثبت‌نام با موفقیت انجام شد');
-      _navigateToProfile();
-    } catch (e) {
-      _showMessage(e.toString(), backgroundColor: Colors.red);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -62,10 +45,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               _buildHeader(),
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
               _buildFormFields(),
               const SizedBox(height: 24),
-              _buildRegisterButton(),
+              MyButton(text: 'ثبت‌ نام', onPressed: _registerUser),
               const SizedBox(height: 16),
               _buildLoginLink(),
             ],
@@ -81,7 +64,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         const Icon(Icons.person_add, size: 80, color: Colors.blue),
         const SizedBox(height: 16),
         Text(
-          "ثبت‌نام کنید",
+          "ثبت‌ نام کنید",
           style: Theme.of(context).textTheme.headlineSmall?.copyWith(
             color: Colors.blue,
             fontWeight: FontWeight.bold,
@@ -106,21 +89,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  Widget _buildRegisterButton() {
-    return MyButton(
-      text: 'ثبت‌نام',
-      onPressed: _registerUser,
-      color: Colors.blue,
-      textColor: Colors.white,
-    );
-  }
-
   Widget _buildEmailField() {
     return MyTextfield(
       label: 'ایمیل',
       hintText: 'example@domain.com',
       controller: _emailController,
-      icon: const Icon(Icons.email, color: Colors.blue),
+      icon: const Icon(Icons.email),
       keyboardType: TextInputType.emailAddress,
       validator: (value) {
         if (value == null || value.isEmpty) {
@@ -139,7 +113,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       label: 'رمز عبور',
       hintText: 'حداقل ۶ کاراکتر',
       controller: _passwordController,
-      icon: const Icon(Icons.lock, color: Colors.blue),
+      icon: const Icon(Icons.lock),
       obscureText: true,
       validator: (value) {
         if (value == null || value.isEmpty) {
@@ -158,7 +132,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       label: 'تکرار رمز عبور',
       hintText: 'رمز عبور را تکرار کنید',
       controller: _confirmPWController,
-      icon: const Icon(Icons.lock_outline, color: Colors.blue),
+      icon: const Icon(Icons.lock_outline),
       obscureText: true,
       validator: (value) {
         if (value == null || value.isEmpty) {
@@ -189,17 +163,69 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  void _showMessage(String message, {Color backgroundColor = Colors.green}) {
+  void _registerUser() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    try {
+      final email = _emailController.text.trim();
+      final password = _passwordController.text.trim();
+
+      final userCredential = await AuthService().signUpWithEmail(
+        email: email,
+        password: password,
+      );
+
+      if (!mounted) return;
+
+      await FirestoreService().createUser(
+        userId: userCredential!.user!.uid,
+        email: email,
+      );
+
+      _showMessage('ثبت‌نام با موفقیت انجام شد');
+      _navigateToProfile();
+    } catch (e) {
+      if (!mounted) return;
+      _showMessage(e.toString(), backgroundColor: Colors.red);
+    }
+  }
+
+  void _showMessage(
+    String message, {
+    Color backgroundColor = Colors.green,
+    Duration duration = const Duration(seconds: 3),
+    SnackBarBehavior behavior = SnackBarBehavior.floating,
+    TextStyle? textStyle,
+    double? elevation,
+    EdgeInsetsGeometry? margin,
+  }) {
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: backgroundColor),
+      SnackBar(
+        content: Text(
+          message,
+          style: textStyle ?? const TextStyle(color: Colors.white),
+        ),
+        backgroundColor: backgroundColor,
+        duration: duration,
+        behavior: behavior,
+        elevation: elevation,
+        margin: margin,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        action: SnackBarAction(
+          label: 'تایید',
+          textColor: Colors.white,
+          onPressed: () {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          },
+        ),
+      ),
     );
   }
 
   void _navigateToProfile() {
     if (!mounted) return;
-
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => const ProfileScreen()),

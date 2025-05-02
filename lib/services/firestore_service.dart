@@ -21,19 +21,18 @@ class FirestoreService {
       );
 
   Future<void> createUser({
+    required String userId,
     required String email,
-    required String password,
-    required String firstName,
-    required String lastName,
+    String firstName = '',
+    String lastName = '',
     String imageUrl = '',
     bool isAdmin = false,
   }) async {
-    final userRef = _usersRef.doc();
+    final userRef = _usersRef.doc(userId);
 
     final newUser = User(
-      userId: userRef.id,
+      userId: userId,
       email: email,
-      password: password,
       firstName: firstName,
       lastName: lastName,
       imageUrl: imageUrl,
@@ -48,7 +47,6 @@ class FirestoreService {
   Future<void> updateUser({
     required String userId,
     String? email,
-    String? password,
     String? firstName,
     String? lastName,
     String? imageUrl,
@@ -60,7 +58,6 @@ class FirestoreService {
     };
 
     if (email != null) updates['email'] = email;
-    if (password != null) updates['password'] = password;
     if (firstName != null) updates['first_name'] = firstName;
     if (lastName != null) updates['last_name'] = lastName;
     if (imageUrl != null) updates['image_url'] = imageUrl;

@@ -5,54 +5,47 @@ import 'package:chat_app/screens/profile_screen.dart';
 import 'package:chat_app/widgets/chat_item.dart';
 
 class ChatListScreen extends StatefulWidget {
-  const ChatListScreen({super.key});
+  final String currentUserId;
+
+  const ChatListScreen({super.key, required this.currentUserId});
 
   @override
   State<ChatListScreen> createState() => _ChatListScreenState();
 }
 
 class _ChatListScreenState extends State<ChatListScreen> {
-  final currentUserId = 'zIWl7N0WeYSlmFhSJjWtAEkYYAg1';
-  bool _isLoading = false;
-
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: _buildAppBar(colorScheme),
-      body: _buildChatListBody(colorScheme),
-      drawer: _buildDrawer(colorScheme),
+      appBar: _buildAppBar(),
+      body: _buildChatListBody(),
+      drawer: _buildDrawer(),
     );
   }
 
-  AppBar _buildAppBar(ColorScheme colorScheme) {
-    return AppBar(
-      backgroundColor: colorScheme.secondary,
-      actions: [
-        IconButton(icon: const Icon(Icons.refresh), onPressed: _refreshChats),
-      ],
-    );
+  AppBar _buildAppBar() {
+    return AppBar(backgroundColor: Theme.of(context).colorScheme.primary);
   }
 
-  Widget _buildChatListBody(ColorScheme colorScheme) {
+  Widget _buildChatListBody() {
     return Container(
-      decoration: BoxDecoration(color: colorScheme.primary),
+      decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface),
       child: _buildChatStream(),
     );
   }
 
   Widget _buildChatStream() {
     return StreamBuilder<List<Chat>>(
-      stream: FirestoreService().getUserChatsStream(userId: currentUserId),
+      stream: FirestoreService().getUserChatsStream(
+        userId: widget.currentUserId,
+      ),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return _buildErrorState(snapshot.error.toString());
         }
 
-        if (!snapshot.hasData || _isLoading) {
-          return _buildLoadingState();
+        if (!snapshot.hasData) {
+          return _buildEmptyState();
         }
 
         final chats = snapshot.data!;
@@ -65,8 +58,8 @@ class _ChatListScreenState extends State<ChatListScreen> {
     return Center(child: Text('Error: $error'));
   }
 
-  Widget _buildLoadingState() {
-    return const Center(child: CircularProgressIndicator());
+  Widget _buildEmptyState() {
+    return const Center(child: Text('There is no message yet!'));
   }
 
   Widget _buildChatList(List<Chat> chats) {
@@ -74,12 +67,13 @@ class _ChatListScreenState extends State<ChatListScreen> {
       return _buildEmptyChatsState();
     }
 
-    return RefreshIndicator(
-      onRefresh: _refreshChats,
-      child: ListView.builder(
-        itemCount: chats.length,
-        itemBuilder: (context, index) => ChatItem(chatItem: chats[index]),
-      ),
+    return ListView.builder(
+      itemCount: chats.length,
+      itemBuilder:
+          (context, index) => ChatItem(
+            chatItem: chats[index],
+            currentUserId: widget.currentUserId,
+          ),
     );
   }
 
@@ -87,10 +81,10 @@ class _ChatListScreenState extends State<ChatListScreen> {
     return const Center(child: Text('No chats yet! Start a conversation'));
   }
 
-  Widget _buildDrawer(ColorScheme colorScheme) {
+  Widget _buildDrawer() {
     return Drawer(
       width: 350,
-      backgroundColor: colorScheme.primary,
+      backgroundColor: Theme.of(context).colorScheme.secondary,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
       child: ListView(
         padding: EdgeInsets.zero,
@@ -103,18 +97,6 @@ class _ChatListScreenState extends State<ChatListScreen> {
         ],
       ),
     );
-  }
-
-  Future<void> _refreshChats() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    await Future.delayed(const Duration(seconds: 1));
-
-    setState(() {
-      _isLoading = false;
-    });
   }
 
   void _navigateToProfile() {

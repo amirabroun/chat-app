@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:chat_app/services/auth_service.dart';
 import 'package:chat_app/services/firestore_service.dart';
 import 'package:chat_app/screens/login_screen.dart';
@@ -14,12 +13,11 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  final _formKey = GlobalKey<FormState>();
+
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
   final _emailController = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
-
-  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   bool _isLoading = true;
   bool _authIsAdmin = false;
@@ -27,7 +25,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _loadUserData();
+    _loadAuthUser();
   }
 
   @override
@@ -57,7 +55,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     ];
 
-    return AppBar(title: const Text('پروفایل'), actions: actions);
+    return AppBar(
+      title: const Text('پروفایل'),
+      actions: actions,
+      backgroundColor: Theme.of(context).colorScheme.primary,
+    );
   }
 
   Widget _buildProfileForm() {
@@ -69,19 +71,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
       MyTextfield(
         label: 'نام',
         controller: _firstNameController,
-        icon: const Icon(Icons.person, color: Colors.white),
+        icon: const Icon(Icons.person),
       ),
       const SizedBox(height: 20),
       MyTextfield(
         label: 'نام خانوادگی',
         controller: _lastNameController,
-        icon: const Icon(Icons.person_outline, color: Colors.white),
+        icon: const Icon(Icons.person_outline),
       ),
       const SizedBox(height: 20),
       MyTextfield(
         label: 'ایمیل',
         controller: _emailController,
-        icon: const Icon(Icons.email, color: Colors.white),
+        icon: const Icon(Icons.email),
         enabled: false,
       ),
       _buildAdminContent(),
@@ -110,16 +112,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  void _loadUserData() async {
+  void _loadAuthUser() async {
     setState(() => _isLoading = true);
     try {
-      final user = _auth.currentUser;
-      if (user == null) {
+      final userId = AuthService().getCurrentUserId();
+      if (userId == null) {
         _redirectToLogin();
         return;
       }
 
-      _updateUserState(await FirestoreService().getUser(userId: user.uid));
+      _updateUserState(await FirestoreService().getUser(userId: userId));
     } catch (e) {
       debugPrint(e.toString());
       _showMessage('خطا در بارگذاری اطلاعات کاربر');
@@ -145,14 +147,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final user = _auth.currentUser;
-      if (user == null) {
+      final userId = AuthService().getCurrentUserId();
+      if (userId == null) {
         _redirectToLogin();
         return;
       }
 
       await FirestoreService().updateUser(
-        userId: user.uid,
+        userId: userId,
         firstName: _firstNameController.text,
         lastName: _lastNameController.text,
       );
@@ -169,7 +171,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  Future<void> _handleLogout() async {
+  void _handleLogout() async {
     await AuthService().signOut();
     _redirectToLogin();
   }
@@ -182,11 +184,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  void _showMessage(String message, {Color backgroundColor = Colors.green}) {
+  void _showMessage(
+    String message, {
+    Color backgroundColor = Colors.green,
+    Duration duration = const Duration(seconds: 3),
+    SnackBarBehavior behavior = SnackBarBehavior.floating,
+    TextStyle? textStyle,
+    double? elevation,
+    EdgeInsetsGeometry? margin,
+  }) {
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: backgroundColor),
+      SnackBar(
+        content: Text(
+          message,
+          style: textStyle ?? const TextStyle(color: Colors.white),
+        ),
+        backgroundColor: backgroundColor,
+        duration: duration,
+        behavior: behavior,
+        elevation: elevation,
+        margin: margin,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        action: SnackBarAction(
+          label: 'تایید',
+          textColor: Colors.white,
+          onPressed: () {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          },
+        ),
+      ),
     );
   }
 }
