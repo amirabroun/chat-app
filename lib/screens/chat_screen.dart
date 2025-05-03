@@ -42,7 +42,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final lastSeen = 'last seen recently';
 
     return AppBar(
-      backgroundColor: const Color(0xffe5edec),
+      backgroundColor: Theme.of(context).colorScheme.primary,
       title: Row(
         children: [
           UserAvatar(name: chatName, avatarUrl: avatarUrl),
@@ -97,18 +97,19 @@ class _ChatScreenState extends State<ChatScreen> {
       itemBuilder: (context, index) {
         final message = messages[index];
         final isMe = message.senderId == userId!;
+        final colorScheme = Theme.of(context).colorScheme;
         return Align(
           alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
           child: Container(
             margin: const EdgeInsets.symmetric(vertical: 4),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: isMe ? Colors.blue : Colors.grey[300],
+              color: isMe ? colorScheme.primary : Colors.grey[300],
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(
-              message.text,
-              style: TextStyle(color: isMe ? Colors.white : Colors.black),
+              '${message.text} ${message.timestamp}',
+              style: TextStyle(color: isMe ? colorScheme.surface : colorScheme.onSurface),
             ),
           ),
         );
@@ -117,6 +118,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildInputField() {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       color: Colors.grey[200],
@@ -130,7 +132,7 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
             ),
           ),
-          IconButton(icon: const Icon(Icons.send), onPressed: _sendMessage),
+          IconButton(icon: const Icon(Icons.send), onPressed: _sendMessage, color: colorScheme.primary,),
         ],
       ),
     );

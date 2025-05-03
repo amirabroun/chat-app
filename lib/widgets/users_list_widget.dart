@@ -82,8 +82,6 @@ class _UsersListWidgetState extends State<UsersListWidget> {
     return MyButton(
       text: 'ادمین کن',
       onPressed: () => _promoteToAdmin(user),
-      color: Colors.grey,
-      textColor: Colors.white,
       height: 38,
       fontSize: 12,
       borderRadius: 8,

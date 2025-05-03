@@ -47,8 +47,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
               _buildHeader(),
               const SizedBox(height: 24),
               _buildFormFields(),
-              const SizedBox(height: 24),
-              MyButton(text: 'ثبت‌ نام', onPressed: _registerUser),
+              const SizedBox(height: 50),
+              MyButton(text: 'ثبت‌ نام', onPressed: _registerUser, width: 320,),
               const SizedBox(height: 16),
               _buildLoginLink(),
             ],
@@ -59,14 +59,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Widget _buildHeader() {
+    final colorScheme = Theme.of(context).colorScheme;
     return Column(
       children: [
-        const Icon(Icons.person_add, size: 80, color: Colors.blue),
+        Icon(Icons.person_add, size: 80, color: colorScheme.primary),
         const SizedBox(height: 16),
         Text(
           "ثبت‌ نام کنید",
           style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-            color: Colors.blue,
+            color: colorScheme.onSurface,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -92,7 +93,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Widget _buildEmailField() {
     return MyTextfield(
       label: 'ایمیل',
-      hintText: 'example@domain.com',
       controller: _emailController,
       icon: const Icon(Icons.email),
       keyboardType: TextInputType.emailAddress,
@@ -111,7 +111,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Widget _buildPasswordField() {
     return MyTextfield(
       label: 'رمز عبور',
-      hintText: 'حداقل ۶ کاراکتر',
       controller: _passwordController,
       icon: const Icon(Icons.lock),
       obscureText: true,
@@ -130,7 +129,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Widget _buildConfirmPasswordField() {
     return MyTextfield(
       label: 'تکرار رمز عبور',
-      hintText: 'رمز عبور را تکرار کنید',
       controller: _confirmPWController,
       icon: const Icon(Icons.lock_outline),
       obscureText: true,
@@ -147,11 +145,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Widget _buildLoginLink() {
+    final colorScheme = Theme.of(context).colorScheme;
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         TextButton(
-          child: const Text("ورود", style: TextStyle(color: Colors.blue)),
+          child: Text("ورود", style: TextStyle(color: colorScheme.primary)),
           onPressed:
               () => Navigator.pushReplacement(
                 context,
