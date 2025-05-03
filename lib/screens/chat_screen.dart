@@ -43,18 +43,10 @@ class _ChatScreenState extends State<ChatScreen> {
 
     return AppBar(
       backgroundColor: Theme.of(context).colorScheme.primary,
-      title: Row(
-        children: [
-          UserAvatar(name: chatName, avatarUrl: avatarUrl),
-          const SizedBox(width: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(chatName, style: const TextStyle(fontSize: 16)),
-              Text(lastSeen, style: const TextStyle(fontSize: 12)),
-            ],
-          ),
-        ],
+      title: ListTile(
+        leading: UserAvatar(name: chatName, avatarUrl: avatarUrl),
+        title: Text(chatName, style: const TextStyle(fontSize: 16)),
+        subtitle: Text(lastSeen, style: const TextStyle(fontSize: 12)),
       ),
     );
   }
@@ -109,7 +101,9 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
             child: Text(
               '${message.text} ${message.timestamp}',
-              style: TextStyle(color: isMe ? colorScheme.surface : colorScheme.onSurface),
+              style: TextStyle(
+                color: isMe ? colorScheme.surface : colorScheme.onSurface,
+              ),
             ),
           ),
         );
@@ -132,7 +126,11 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
             ),
           ),
-          IconButton(icon: const Icon(Icons.send), onPressed: _sendMessage, color: colorScheme.primary,),
+          IconButton(
+            icon: const Icon(Icons.send),
+            onPressed: _sendMessage,
+            color: colorScheme.primary,
+          ),
         ],
       ),
     );
