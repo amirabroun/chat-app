@@ -3,6 +3,7 @@ import 'package:chat_app/models/chat_model.dart';
 import 'package:chat_app/services/firestore_service.dart';
 import 'package:chat_app/screens/profile_screen.dart';
 import 'package:chat_app/widgets/chat_item.dart';
+import 'package:chat_app/widgets/users_list_widget.dart';
 
 class ChatListScreen extends StatefulWidget {
   final String currentUserId;
@@ -20,6 +21,11 @@ class _ChatListScreenState extends State<ChatListScreen> {
       appBar: _buildAppBar(),
       body: _buildChatListBody(),
       drawer: _buildDrawer(),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showParticipantsList,
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        child: const Icon(Icons.group),
+      ),
     );
   }
 
@@ -96,6 +102,22 @@ class _ChatListScreenState extends State<ChatListScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  void _showParticipantsList() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: UsersListWidget(),
+        );
+      },
     );
   }
 

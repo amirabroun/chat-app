@@ -109,7 +109,7 @@ class _ChatItem extends State<ChatItem> {
       context,
       MaterialPageRoute(
         builder:
-            (context) => ChatScreen(chatName: chatName!, chatItem: chatItem!),
+            (context) => ChatScreen(chatName: chatName!, chatId: chatItem?.chatId),
       ),
     );
   }

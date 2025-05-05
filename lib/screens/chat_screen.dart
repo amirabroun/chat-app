@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:chat_app/services/auth_service.dart';
 import 'package:chat_app/services/firestore_service.dart';
-import 'package:chat_app/screens/login_screen.dart';
 import 'package:chat_app/widgets/user_avatar.dart';
 import 'package:chat_app/models/chat_model.dart';
 import 'package:chat_app/models/message_model.dart';
 
 class ChatScreen extends StatefulWidget {
   final String chatName;
-  final Chat chatItem;
+  final String? chatId;
+  final List<String>? participantIds;
 
-  const ChatScreen({super.key, required this.chatName, required this.chatItem});
+  const ChatScreen({
+    super.key,
+    required this.chatName,
+    this.participantIds,
+    this.chatId,
+  });
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -18,35 +23,38 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   String? currentUserId;
-  List<ChatMessage> _messages = [];
-  final TextEditingController _controller = TextEditingController();
+  final _controller = TextEditingController();
+  late Stream<List<ChatMessage>> _messagesStream;
+  bool _isSending = false;
 
   @override
   void initState() {
     super.initState();
     currentUserId = AuthService().getCurrentUserId();
-    if (currentUserId == null) {
-      _navigateToLogin();
+    _initializeChat();
+  }
+
+  void _initializeChat() {
+    if (widget.chatId != null) {
+      _messagesStream = FirestoreService().getChatMessagesStream(
+        chatId: widget.chatId!,
+      );
+    } else {
+      _messagesStream = const Stream.empty();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    widget.chatItem.participants.firstWhere((id) => id != currentUserId);
     return Scaffold(appBar: _buildAppBar(), body: _buildChatBody());
   }
 
   AppBar _buildAppBar() {
-    final chatName = widget.chatName;
-    final avatarUrl = widget.chatItem.imageUrl;
-    final lastSeen = 'last seen recently';
-
     return AppBar(
-      backgroundColor: Theme.of(context).colorScheme.primary,
       title: ListTile(
-        leading: UserAvatar(name: chatName, avatarUrl: avatarUrl),
-        title: Text(chatName, style: const TextStyle(fontSize: 16)),
-        subtitle: Text(lastSeen, style: const TextStyle(fontSize: 12)),
+        leading: UserAvatar(name: widget.chatName),
+        title: Text(widget.chatName),
+        subtitle: const Text('last seen recently'),
       ),
     );
   }
@@ -59,51 +67,60 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _buildMessageStream() {
     return StreamBuilder<List<ChatMessage>>(
-      stream: FirestoreService().getChatMessagesStream(
-        chatId: widget.chatItem.chatId,
-      ),
+      stream: _messagesStream,
       builder: (context, snapshot) {
-        if (snapshot.hasData) {
-          _messages = snapshot.data!;
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
         }
 
-        if (_messages.isEmpty && !snapshot.hasData) {
-          return _buildEmptyState();
+        if (widget.chatId == null) {
+          return const Center(child: Text('Start a new conversation'));
         }
 
-        return _buildMessageList(_messages);
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final messages = snapshot.data ?? [];
+        if (messages.isEmpty) {
+          return const Center(child: Text('No messages yet'));
+        }
+
+        return _buildMessageList(messages);
       },
     );
   }
 
   Widget _buildMessageList(List<ChatMessage> messages) {
-    final userId = AuthService().getCurrentUserId();
-    // if (messages.isEmpty) {
-    //   return _buildEmptyChatsState();
-    // }
-
     return ListView.builder(
       reverse: true,
       padding: const EdgeInsets.all(8),
       itemCount: messages.length,
       itemBuilder: (context, index) {
         final message = messages[index];
-        final isMe = message.senderId == userId!;
-        final colorScheme = Theme.of(context).colorScheme;
+        final isMe = message.senderId == currentUserId;
+
         return Align(
           alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
           child: Container(
             margin: const EdgeInsets.symmetric(vertical: 4),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: isMe ? colorScheme.primary : Colors.grey[300],
-              borderRadius: BorderRadius.circular(10),
+              color: isMe ? Colors.blue : Colors.grey[300],
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: Text(
-              '${message.text} ${message.timestamp}',
-              style: TextStyle(
-                color: isMe ? colorScheme.surface : colorScheme.onSurface,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(message.text),
+                Text(
+                  _formatTime(message.timestamp),
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: isMe ? Colors.white70 : Colors.grey[600],
+                  ),
+                ),
+              ],
             ),
           ),
         );
@@ -111,67 +128,98 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
+  String _formatTime(DateTime time) {
+    return '${time.hour}:${time.minute.toString().padLeft(2, '0')}';
+  }
+
   Widget _buildInputField() {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      color: Colors.grey[200],
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
       child: Row(
         children: [
           Expanded(
             child: TextField(
               controller: _controller,
-              decoration: const InputDecoration.collapsed(
-                hintText: 'Write a message...',
+              decoration: InputDecoration(
+                hintText: 'Type a message...',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
               ),
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.send),
-            onPressed: _sendMessage,
-            color: colorScheme.primary,
-          ),
+          const SizedBox(width: 8),
+          _isSending
+              ? const CircularProgressIndicator()
+              : IconButton(
+                icon: const Icon(Icons.send),
+                onPressed: _sendMessage,
+              ),
         ],
       ),
     );
   }
 
-  void _sendMessage() {
+  Future<void> _sendMessage() async {
     final text = _controller.text.trim();
-    final chatId = widget.chatItem.chatId;
-    final userId = AuthService().getCurrentUserId();
-
     if (text.isEmpty) return;
 
-    setState(() {
-      _messages.insert(
-        0,
-        ChatMessage(
-          messageId: '',
-          senderId: userId!,
-          text: text,
-          timestamp: DateTime.now(),
-        ),
-      );
-    });
-
+    setState(() => _isSending = true);
     _controller.clear();
-    FirestoreService().sendMessage(
-      chatId: chatId,
-      senderId: userId!,
-      text: text,
-    );
+
+    try {
+      final chatId = await _getOrCreateChatId();
+
+      await FirestoreService().sendMessage(
+        chatId: chatId,
+        senderId: currentUserId!,
+        text: text,
+      );
+
+      if (widget.chatId == null) {
+        setState(() {
+          _messagesStream = FirestoreService().getChatMessagesStream(
+            chatId: chatId,
+          );
+        });
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('خطا در ارسال پیام: ${e.toString()}')),
+      );
+    } finally {
+      setState(() => _isSending = false);
+    }
   }
 
-  Widget _buildEmptyState() {
-    return Center(child: Text('No message yet!'));
-  }
+  Future<String> _getOrCreateChatId() async {
+    if (widget.chatId != null) {
+      return widget.chatId!;
+    }
 
-  void _navigateToLogin() {
-    if (!mounted) return;
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const LoginScreen()),
+    if (widget.participantIds == null || widget.participantIds!.isEmpty) {
+      throw ArgumentError('برای ساخت چت جدید، participantIds الزامی است');
+    }
+
+    final participants = widget.participantIds!.toSet()..add(currentUserId!);
+
+    try {
+      final existingChat = await FirestoreService().findExistingChat(
+        participantIds: participants.toList(),
+      );
+
+      if (existingChat != null) {
+        return existingChat.chatId;
+      }
+    } catch (e) {
+      debugPrint('Error searching for existing chat: $e');
+    }
+
+    return await FirestoreService().createNewChat(
+      type: ChatType.direct,
+      participantIds: participants.toList(),
+      name: widget.chatName,
     );
   }
 }

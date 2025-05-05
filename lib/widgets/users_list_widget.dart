@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:chat_app/services/auth_service.dart';
 import 'package:chat_app/services/firestore_service.dart';
-import 'package:chat_app/components/my_button.dart';
+import 'package:chat_app/screens/chat_screen.dart';
+import 'package:chat_app/widgets/user_avatar.dart';
 
 class UsersListWidget extends StatefulWidget {
   const UsersListWidget({super.key});
@@ -12,21 +13,23 @@ class UsersListWidget extends StatefulWidget {
 
 class _UsersListWidgetState extends State<UsersListWidget> {
   late Future<List> _usersFuture;
+  final AuthService _authService = AuthService();
+  final FirestoreService _firestoreService = FirestoreService();
 
   @override
   void initState() {
     super.initState();
-    _usersFuture = FirestoreService().getUsers(
-      excludeUserId: AuthService().getCurrentUserId(),
-    );
+    _loadUsers();
+  }
+
+  void _loadUsers() {
+    final currentUserId = _authService.getCurrentUserId();
+    _usersFuture = _firestoreService.getUsers(excludeUserId: currentUserId);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [_buildUsersList()],
-    );
+    return _buildUsersList();
   }
 
   Widget _buildUsersList() {
@@ -50,96 +53,51 @@ class _UsersListWidgetState extends State<UsersListWidget> {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: users.length,
-          itemBuilder: (context, index) => _buildUserItem(users[index]),
+          itemBuilder: (context, index) {
+            final user = users[index];
+
+            return ListTile(
+              leading: UserAvatar(name: '${user.firstName} ${user.lastName}'),
+              title: Text('${user.firstName} ${user.lastName}'),
+              subtitle: Text(
+                'Online',
+                style: TextStyle(color: Colors.grey[600]),
+              ),
+              onTap: () async {
+                final currentUserId = AuthService().getCurrentUserId();
+                if (currentUserId == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Please login to start chatting')),
+                  );
+                  return;
+                }
+
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder:
+                        (context) => ChatScreen(
+                          chatName: '${user.firstName} ${user.lastName}',
+                          participantIds: [currentUserId, user.userId],
+                        ),
+                  ),
+                );
+              },
+            );
+          },
         );
       },
     );
   }
 
   Widget _buildCenteredMessage(String message, {Color color = Colors.red}) {
-    return Center(child: Text(message, style: TextStyle(color: color)));
-  }
-
-  Widget _buildUserItem(user) {
-    final fullName = '${user.firstName ?? ''} ${user.lastName ?? ''}'.trim();
-
-    return ListTile(
-      leading: const Icon(Icons.person_outline),
-      title: Text(fullName.isNotEmpty ? fullName : 'بدون نام'),
-      subtitle: Text(user.email),
-      trailing: _buildAdminAction(user),
-    );
-  }
-
-  Widget _buildAdminAction(user) {
-    if (user.isAdmin == true) {
-      return const Text(
-        'ادمین',
-        style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
-      );
-    }
-
-    return MyButton(
-      text: 'ادمین کن',
-      onPressed: () => _promoteToAdmin(user),
-      height: 38,
-      fontSize: 12,
-      borderRadius: 8,
-      elevation: 3,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-    );
-  }
-
-  void _promoteToAdmin(user) async {
-    try {
-      await FirestoreService().updateUser(userId: user.userId, isAdmin: true);
-
-      _showMessage('کاربر با موفقیت ادمین شد');
-    } catch (e) {
-      _showMessage(
-        'خطا در ادمین کردن کاربر: ${e.toString()}',
-        backgroundColor: Colors.red,
-      );
-    } finally {
-      if (mounted) {
-        setState(() {
-          _usersFuture = FirestoreService().getUsers(
-            excludeUserId: AuthService().getCurrentUserId(),
-          );
-        });
-      }
-    }
-  }
-
-  void _showMessage(
-    String message, {
-    Color backgroundColor = Colors.green,
-    Duration duration = const Duration(seconds: 3),
-    SnackBarBehavior behavior = SnackBarBehavior.floating,
-    TextStyle? textStyle,
-    double? elevation,
-    EdgeInsetsGeometry? margin,
-  }) {
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Text(
           message,
-          style: textStyle ?? const TextStyle(color: Colors.white),
-        ),
-        backgroundColor: backgroundColor,
-        duration: duration,
-        behavior: behavior,
-        elevation: elevation,
-        margin: margin,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        action: SnackBarAction(
-          label: 'تایید',
-          textColor: Colors.white,
-          onPressed: () {
-            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-          },
+          style: TextStyle(color: color),
+          textAlign: TextAlign.center,
         ),
       ),
     );

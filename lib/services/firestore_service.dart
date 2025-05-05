@@ -106,7 +106,7 @@ class FirestoreService {
     }
   }
 
-  Future<void> createNewChat({
+  Future<String> createNewChat({
     required List<String> participantIds,
     required ChatType type,
     String? name,
@@ -135,7 +135,42 @@ class FirestoreService {
         'updated_at': FieldValue.serverTimestamp(),
       });
     }
+
     await batch.commit();
+
+    return chatRef.id;
+  }
+
+  Future<Chat?> findExistingChat({required List<String> participantIds}) async {
+    try {
+      if (participantIds.isEmpty) return null;
+
+      final firstParticipantId = participantIds.first;
+
+      final snapshot =
+          await _chatsRef
+              .where('participants', arrayContains: firstParticipantId)
+              .get();
+
+      final participantSet = participantIds.toSet();
+
+      for (final doc in snapshot.docs) {
+        final chat = doc.data();
+        final docParticipants = chat.participants.toSet();
+
+        final bool sameLength = docParticipants.length == participantSet.length;
+        final bool sameMembers = docParticipants.containsAll(participantSet);
+        final bool isDirect = chat.type == ChatType.direct;
+
+        if (sameLength && sameMembers && isDirect) {
+          return chat;
+        }
+      }
+
+      return null;
+    } catch (e) {
+      return null;
+    }
   }
 
   Stream<List<Chat>> getUserChatsStream({required String userId}) {

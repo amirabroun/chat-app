@@ -3,7 +3,6 @@ import 'package:chat_app/services/auth_service.dart';
 import 'package:chat_app/services/firestore_service.dart';
 import 'package:chat_app/screens/login_screen.dart';
 import 'package:chat_app/components/my_textfield.dart';
-import 'package:chat_app/widgets/users_list_widget.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -20,7 +19,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _emailController = TextEditingController();
 
   bool _isLoading = true;
-  bool _authIsAdmin = false;
 
   @override
   void initState() {
@@ -86,7 +84,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         icon: const Icon(Icons.email),
         enabled: false,
       ),
-      _buildAdminContent(),
     ];
 
     return Form(
@@ -98,19 +95,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildAdminContent() {
-    if (!_authIsAdmin) return const SizedBox.shrink();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: const [
-        SizedBox(height: 30),
-        Text('لیست کاربران'),
-        SizedBox(height: 10),
-        UsersListWidget(),
-      ],
-    );
-  }
 
   void _loadAuthUser() async {
     setState(() => _isLoading = true);
@@ -137,7 +121,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _emailController.text = user.email;
       _firstNameController.text = user.firstName;
       _lastNameController.text = user.lastName;
-      _authIsAdmin = user.isAdmin;
       _isLoading = false;
     });
   }
