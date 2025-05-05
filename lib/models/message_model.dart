@@ -13,13 +13,15 @@ class ChatMessage {
     required this.timestamp,
   });
 
-  factory ChatMessage.fromFirestore(DocumentSnapshot<Map<String, dynamic>> snapshot) {
+  factory ChatMessage.fromFirestore(
+    DocumentSnapshot<Map<String, dynamic>> snapshot,
+  ) {
     final data = snapshot.data()!;
     return ChatMessage(
       messageId: snapshot.id,
       senderId: data['sender_id'],
       text: data['text'],
-      timestamp: (data['timestamp'] as Timestamp).toDate(),
+      timestamp: (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
 

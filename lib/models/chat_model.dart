@@ -28,14 +28,14 @@ class Chat {
     return Chat(
       chatId: snapshot.id,
       participants: List<String>.from(data['participants']),
-      createdAt: (data['created_at'] as Timestamp).toDate(),
       type: ChatType.values.firstWhere(
-            (e) => e.name == data['type'],
+        (e) => e.name == data['type'],
         orElse: () => ChatType.direct,
       ),
       name: data['name'],
       imageUrl: data['image_url'],
-      updatedAt: (data['updated_at'] as Timestamp).toDate(),
+      createdAt: (data['created_at'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      updatedAt: (data['updated_at'] as Timestamp?)?.toDate() ?? DateTime.now(),
       lastMessage: data['last_message'],
     );
   }
