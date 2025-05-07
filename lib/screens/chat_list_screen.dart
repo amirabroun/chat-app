@@ -4,10 +4,10 @@ import 'package:chat_app/services/firestore_service.dart';
 import 'package:chat_app/screens/profile_screen.dart';
 import 'package:chat_app/widgets/chat_item.dart';
 import 'package:chat_app/widgets/users_list_widget.dart';
+import 'package:chat_app/screens/chat_screen.dart';
 
 class ChatListScreen extends StatefulWidget {
   final String currentUserId;
-
   const ChatListScreen({super.key, required this.currentUserId});
 
   @override
@@ -15,34 +15,46 @@ class ChatListScreen extends StatefulWidget {
 }
 
 class _ChatListScreenState extends State<ChatListScreen> {
-  final FirestoreService _firestoreService = FirestoreService();
+  final _firestoreService = FirestoreService();
+  final _groupNameController = TextEditingController();
+
+  @override
+  void dispose() {
+    _groupNameController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: _buildAppBar(),
-      body: _buildChatListBody(),
-      drawer: _buildDrawer(),
+      appBar: AppBar(backgroundColor: Theme.of(context).colorScheme.primary),
+      body: _buildChatList(),
+      drawer: Drawer(
+        width: 350,
+        backgroundColor: Theme.of(context).colorScheme.secondary,
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.person),
+              title: const Text('Profile'),
+              onTap:
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                  ),
+            ),
+          ],
+        ),
+      ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _showParticipantsList,
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        child: const Icon(Icons.group),
+        onPressed: _showActionMenu,
+        child: const Icon(Icons.add),
       ),
     );
   }
 
-  AppBar _buildAppBar() {
-    return AppBar(backgroundColor: Theme.of(context).colorScheme.primary);
-  }
-
-  Widget _buildChatListBody() {
-    return Container(
-      decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface),
-      child: _buildChatStream(),
-    );
-  }
-
-  Widget _buildChatStream() {
+  Widget _buildChatList() {
     return StreamBuilder<List<Chat>>(
       stream: _firestoreService.getUserChatsStream(
         userId: widget.currentUserId,
@@ -53,91 +65,141 @@ class _ChatListScreenState extends State<ChatListScreen> {
         }
 
         if (snapshot.hasError) {
-          return _buildErrorState(snapshot.error.toString());
+          return Center(child: Text('Error: ${snapshot.error}'));
         }
 
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return _buildEmptyChatsState();
+        if (snapshot.data!.isEmpty) {
+          return const Center(child: Text('در حال حاضر چتی موجود نیست.'));
         }
 
-        return _buildChatList(snapshot.data!);
-      },
-    );
-  }
-
-  Widget _buildErrorState(String error) {
-    return Center(child: Text('Error: $error'));
-  }
-
-  Widget _buildEmptyChatsState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Text('در حال حاضر چتی موجود نیست.'),
-          TextButton(
-            onPressed: _showParticipantsList,
-            child: const Text('مکالمه ای شروع کنید.'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildChatList(List<Chat> chats) {
-    if (chats.isEmpty) {
-      return _buildEmptyChatsState();
-    }
-
-    return ListView.builder(
-      itemCount: chats.length,
-      itemBuilder:
-          (context, index) => ChatItem(
-            chatItem: chats[index],
-            currentUserId: widget.currentUserId,
-          ),
-    );
-  }
-
-  Widget _buildDrawer() {
-    return Drawer(
-      width: 350,
-      backgroundColor: Theme.of(context).colorScheme.secondary,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          ListTile(
-            leading: const Icon(Icons.person),
-            title: const Text('Profile'),
-            onTap: _navigateToProfile,
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showParticipantsList() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: UsersListWidget(),
+        return ListView.builder(
+          itemCount: snapshot.data!.length,
+          itemBuilder:
+              (_, index) => ChatItem(
+                chatItem: snapshot.data![index],
+                currentUserId: widget.currentUserId,
+              ),
         );
       },
     );
   }
 
-  void _navigateToProfile() {
+  void _showActionMenu() {
+    showModalBottomSheet(
+      context: context,
+      builder:
+          (_) => Padding(
+            padding: const EdgeInsets.all(24),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _actionButton(Icons.group, 'ساخت گروه', true),
+                _actionButton(Icons.person, 'ارسال پیام', false),
+              ],
+            ),
+          ),
+    );
+  }
+
+  Widget _actionButton(IconData icon, String label, bool isGroup) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          icon: Icon(icon, size: 40),
+          onPressed: () {
+            Navigator.pop(context);
+            _showParticipantsList(isGroup);
+          },
+        ),
+        Text(label),
+      ],
+    );
+  }
+
+  void _showParticipantsList(bool forGroup) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder:
+          (_) => Padding(
+            padding: const EdgeInsets.all(16),
+            child: UsersListWidget(
+              forGroup: forGroup,
+              onUsersSelected:
+                  (selectedIds) => _handleUsersSelection(forGroup, selectedIds),
+            ),
+          ),
+    );
+  }
+
+  void _handleUsersSelection(bool forGroup, List<String> selectedIds) {
+    Navigator.pop(context);
+    selectedIds.add(widget.currentUserId);
+
+    if (forGroup) {
+      _createGroup(selectedIds);
+    } else if (selectedIds.length == 2) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder:
+              (_) => ChatScreen(
+                chatName: 'چت با کاربر',
+                chatType: ChatType.direct,
+                participantIds: selectedIds,
+              ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _createGroup(List<String> participantIds) async {
+    final String? groupName = await showDialog<String>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('نام گروه'),
+            content: TextField(
+              controller: _groupNameController,
+              decoration: const InputDecoration(
+                hintText: 'نام گروه را وارد کنید',
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('انصراف'),
+              ),
+              TextButton(
+                onPressed:
+                    () => Navigator.pop(context, _groupNameController.text),
+                child: const Text('تایید'),
+              ),
+            ],
+          ),
+    );
+
+    if (groupName == null || groupName.isEmpty) return;
+
+    final chatId = await _firestoreService.createNewChat(
+      participantIds: participantIds,
+      type: ChatType.group,
+      name: groupName,
+    );
+
     if (!mounted) return;
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const ProfileScreen()),
+      MaterialPageRoute(
+        builder:
+            (_) => ChatScreen(
+              chatName: groupName,
+              participantIds: participantIds,
+              chatId: chatId,
+              chatType: ChatType.group,
+            ),
+      ),
     );
   }
 }

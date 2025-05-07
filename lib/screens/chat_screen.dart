@@ -9,10 +9,12 @@ class ChatScreen extends StatefulWidget {
   final String chatName;
   final String? chatId;
   final List<String>? participantIds;
+  final ChatType? chatType;
 
   const ChatScreen({
     super.key,
     String? chatName,
+    required this.chatType,
     this.participantIds,
     this.chatId,
   }) : chatName = chatName ?? 'New Chat';
@@ -33,6 +35,7 @@ class _ChatScreenState extends State<ChatScreen> {
           : <String>{};
   Stream<List<ChatMessage>> _messagesStream = const Stream.empty();
   bool _isSending = false;
+  String? _chatId;
 
   @override
   void initState() {
@@ -41,30 +44,38 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _initializeChat() {
-    if (widget.chatId != null) {
-      _messagesStream = _firestoreService.getChatMessagesStream(
-        chatId: widget.chatId!,
-      );
-      return;
-    }
+    String? chatId = widget.chatId;
 
-    if (_participants.length > 1) {
+    if (chatId != null) {
+      _chatId = chatId;
+      _loadMessages();
+    } else if (_participants.length > 1) {
       _firestoreService
           .findExistingChat(participantIds: _participants.toList())
           .then((existingChat) {
             if (existingChat != null && mounted) {
               setState(() {
-                _messagesStream = _firestoreService.getChatMessagesStream(
-                  chatId: existingChat.chatId,
-                );
+                _chatId = existingChat.chatId;
+                _loadMessages();
               });
             }
           })
           .catchError((e) {
             if (mounted) {
-              _showErrorSnackbar('Error initializing chat: $e');
+              _showErrorSnackbar('خطا در پیدا کردن چت: $e');
             }
           });
+    }
+  }
+
+  void _loadMessages() {
+    if (_chatId != null) {
+      setState(() {
+        _messagesStream = _firestoreService.getChatMessagesStream(
+          chatId: _chatId!,
+        );
+        print('درخواست پیام‌ها ارسال شد برای chatId: $_chatId');
+      });
     }
   }
 
@@ -75,10 +86,18 @@ class _ChatScreenState extends State<ChatScreen> {
 
   AppBar _buildAppBar() {
     return AppBar(
-      title: ListTile(
-        leading: UserAvatar(name: widget.chatName),
-        title: Text(widget.chatName),
-        subtitle: const Text('last seen recently'),
+      title: Row(
+        children: [
+          UserAvatar(name: widget.chatName),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              widget.chatName,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -134,8 +153,28 @@ class _ChatScreenState extends State<ChatScreen> {
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
+          crossAxisAlignment:
+              isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
+            if (!isMe &&
+                (widget.chatType == ChatType.group ||
+                    widget.chatType == ChatType.direct))
+              FutureBuilder(
+                future: _firestoreService.getUser(userId: message.senderId),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const SizedBox(height: 16);
+                  }
+                  final user = snapshot.data;
+                  return Text(
+                    user?.firstName ?? 'Unknown',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  );
+                },
+              ),
             Text(message.text),
             Text(
               _formatTime(message.timestamp),
@@ -218,7 +257,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<String> _getOrCreateChatId() async {
-    if (widget.chatId != null) return widget.chatId!;
+    if (_chatId != null) return _chatId!;
 
     try {
       return await _firestoreService.createNewChat(
