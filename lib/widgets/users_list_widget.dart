@@ -15,16 +15,15 @@ class _UsersListWidgetState extends State<UsersListWidget> {
   late Future<List> _usersFuture;
   final AuthService _authService = AuthService();
   final FirestoreService _firestoreService = FirestoreService();
+  String? currentUserId;
 
   @override
   void initState() {
     super.initState();
-    _loadUsers();
-  }
-
-  void _loadUsers() {
-    final currentUserId = _authService.getCurrentUserId();
-    _usersFuture = _firestoreService.getUsers(excludeUserId: currentUserId);
+    setState(() {
+      currentUserId = _authService.getCurrentUserId()!;
+      _usersFuture = _firestoreService.getUsers(excludeUserId: currentUserId);
+    });
   }
 
   @override
@@ -64,21 +63,13 @@ class _UsersListWidgetState extends State<UsersListWidget> {
                 style: TextStyle(color: Colors.grey[600]),
               ),
               onTap: () async {
-                final currentUserId = AuthService().getCurrentUserId();
-                if (currentUserId == null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Please login to start chatting')),
-                  );
-                  return;
-                }
-
                 Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder:
                         (context) => ChatScreen(
                           chatName: '${user.firstName} ${user.lastName}',
-                          participantIds: [currentUserId, user.userId],
+                          participantIds: [currentUserId!, user.userId],
                         ),
                   ),
                 );
