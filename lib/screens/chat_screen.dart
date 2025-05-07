@@ -12,35 +12,59 @@ class ChatScreen extends StatefulWidget {
 
   const ChatScreen({
     super.key,
-    required this.chatName,
+    String? chatName,
     this.participantIds,
     this.chatId,
-  });
+  }) : chatName = chatName ?? 'New Chat';
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  String? currentUserId;
-  final _controller = TextEditingController();
-  late Stream<List<ChatMessage>> _messagesStream;
+  final FirestoreService _firestoreService = FirestoreService();
+  final AuthService _authService = AuthService();
+  final TextEditingController _controller = TextEditingController();
+
+  late final String? currentUserId = _authService.getCurrentUserId();
+  late final Set<String> _participants =
+      widget.participantIds != null
+          ? Set<String>.from(widget.participantIds!)
+          : <String>{};
+  Stream<List<ChatMessage>> _messagesStream = const Stream.empty();
   bool _isSending = false;
 
   @override
   void initState() {
     super.initState();
-    currentUserId = AuthService().getCurrentUserId();
     _initializeChat();
   }
 
   void _initializeChat() {
     if (widget.chatId != null) {
-      _messagesStream = FirestoreService().getChatMessagesStream(
+      _messagesStream = _firestoreService.getChatMessagesStream(
         chatId: widget.chatId!,
       );
-    } else {
-      _messagesStream = const Stream.empty();
+      return;
+    }
+
+    if (_participants.length > 1) {
+      _firestoreService
+          .findExistingChat(participantIds: _participants.toList())
+          .then((existingChat) {
+            if (existingChat != null && mounted) {
+              setState(() {
+                _messagesStream = _firestoreService.getChatMessagesStream(
+                  chatId: existingChat.chatId,
+                );
+              });
+            }
+          })
+          .catchError((e) {
+            if (mounted) {
+              _showErrorSnackbar('Error initializing chat: $e');
+            }
+          });
     }
   }
 
@@ -59,7 +83,7 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Column _buildChatBody() {
+  Widget _buildChatBody() {
     return Column(
       children: [Expanded(child: _buildMessageStream()), _buildInputField()],
     );
@@ -70,11 +94,8 @@ class _ChatScreenState extends State<ChatScreen> {
       stream: _messagesStream,
       builder: (context, snapshot) {
         if (snapshot.hasError) {
+          debugPrint('Error: ${snapshot.error}');
           return Center(child: Text('Error: ${snapshot.error}'));
-        }
-
-        if (widget.chatId == null) {
-          return const Center(child: Text('Start a new conversation'));
         }
 
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -82,11 +103,9 @@ class _ChatScreenState extends State<ChatScreen> {
         }
 
         final messages = snapshot.data ?? [];
-        if (messages.isEmpty) {
-          return const Center(child: Text('No messages yet'));
-        }
-
-        return _buildMessageList(messages);
+        return messages.isEmpty
+            ? const Center(child: Text('No messages yet'))
+            : _buildMessageList(messages);
       },
     );
   }
@@ -99,37 +118,36 @@ class _ChatScreenState extends State<ChatScreen> {
       itemBuilder: (context, index) {
         final message = messages[index];
         final isMe = message.senderId == currentUserId;
-
-        return Align(
-          alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-          child: Container(
-            margin: const EdgeInsets.symmetric(vertical: 4),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: isMe ? Colors.blue : Colors.grey[300],
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(message.text),
-                Text(
-                  _formatTime(message.timestamp),
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: isMe ? Colors.white70 : Colors.grey[600],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
+        return _buildMessageBubble(message, isMe);
       },
     );
   }
 
-  String _formatTime(DateTime time) {
-    return '${time.hour}:${time.minute.toString().padLeft(2, '0')}';
+  Widget _buildMessageBubble(ChatMessage message, bool isMe) {
+    return Align(
+      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isMe ? Colors.blue : Colors.grey[300],
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(message.text),
+            Text(
+              _formatTime(message.timestamp),
+              style: TextStyle(
+                fontSize: 10,
+                color: isMe ? Colors.white70 : Colors.grey[600],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildInputField() {
@@ -137,89 +155,98 @@ class _ChatScreenState extends State<ChatScreen> {
       padding: const EdgeInsets.all(8.0),
       child: Row(
         children: [
-          Expanded(
-            child: TextField(
-              controller: _controller,
-              decoration: InputDecoration(
-                hintText: 'Type a message...',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-              ),
-            ),
-          ),
+          Expanded(child: _buildTextInput()),
           const SizedBox(width: 8),
-          _isSending
-              ? const CircularProgressIndicator()
-              : IconButton(
-                icon: const Icon(Icons.send),
-                onPressed: _sendMessage,
-              ),
+          _buildSendButton(),
         ],
       ),
     );
   }
 
+  Widget _buildTextInput() {
+    return TextField(
+      controller: _controller,
+      decoration: InputDecoration(
+        hintText: 'Type a message...',
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(24)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+      ),
+    );
+  }
+
+  Widget _buildSendButton() {
+    return _isSending
+        ? const SizedBox(
+          width: 24,
+          height: 24,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        )
+        : IconButton(icon: const Icon(Icons.send), onPressed: _sendMessage);
+  }
+
   Future<void> _sendMessage() async {
     final text = _controller.text.trim();
-    if (text.isEmpty) return;
+    if (text.isEmpty || currentUserId == null) return;
 
     setState(() => _isSending = true);
     _controller.clear();
 
     try {
       final chatId = await _getOrCreateChatId();
-
-      await FirestoreService().sendMessage(
+      await _firestoreService.sendMessage(
         chatId: chatId,
         senderId: currentUserId!,
         text: text,
       );
 
-      if (widget.chatId == null) {
+      if (mounted) {
         setState(() {
-          _messagesStream = FirestoreService().getChatMessagesStream(
+          _messagesStream = _firestoreService.getChatMessagesStream(
             chatId: chatId,
           );
         });
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('خطا در ارسال پیام: ${e.toString()}')),
-      );
+      if (mounted) {
+        _showErrorSnackbar('Error sending message: ${e.toString()}');
+      }
     } finally {
-      setState(() => _isSending = false);
+      if (mounted) {
+        setState(() => _isSending = false);
+      }
     }
   }
 
   Future<String> _getOrCreateChatId() async {
-    if (widget.chatId != null) {
-      return widget.chatId!;
-    }
-
-    if (widget.participantIds == null || widget.participantIds!.isEmpty) {
-      throw ArgumentError('برای ساخت چت جدید، participantIds الزامی است');
-    }
-
-    final participants = widget.participantIds!.toSet()..add(currentUserId!);
+    if (widget.chatId != null) return widget.chatId!;
 
     try {
-      final existingChat = await FirestoreService().findExistingChat(
-        participantIds: participants.toList(),
+      return await _firestoreService.createNewChat(
+        type: ChatType.direct,
+        participantIds: _participants.toList(),
+        name: widget.chatName,
       );
-
-      if (existingChat != null) {
-        return existingChat.chatId;
-      }
     } catch (e) {
-      debugPrint('Error searching for existing chat: $e');
+      debugPrint('Error creating chat: $e');
+      rethrow;
     }
+  }
 
-    return await FirestoreService().createNewChat(
-      type: ChatType.direct,
-      participantIds: participants.toList(),
-      name: widget.chatName,
+  String _formatTime(DateTime? time) {
+    if (time == null) return '';
+    return '${time.hour}:${time.minute.toString().padLeft(2, '0')}';
+  }
+
+  void _showErrorSnackbar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), duration: const Duration(seconds: 3)),
     );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 }
