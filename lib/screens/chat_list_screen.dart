@@ -15,6 +15,8 @@ class ChatListScreen extends StatefulWidget {
 }
 
 class _ChatListScreenState extends State<ChatListScreen> {
+  final FirestoreService _firestoreService = FirestoreService();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -42,20 +44,23 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
   Widget _buildChatStream() {
     return StreamBuilder<List<Chat>>(
-      stream: FirestoreService().getUserChatsStream(
+      stream: _firestoreService.getUserChatsStream(
         userId: widget.currentUserId,
       ),
       builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
         if (snapshot.hasError) {
           return _buildErrorState(snapshot.error.toString());
         }
 
-        if (!snapshot.hasData) {
-          return _buildEmptyState();
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return _buildEmptyChatsState();
         }
 
-        final chats = snapshot.data!;
-        return _buildChatList(chats);
+        return _buildChatList(snapshot.data!);
       },
     );
   }
@@ -64,8 +69,19 @@ class _ChatListScreenState extends State<ChatListScreen> {
     return Center(child: Text('Error: $error'));
   }
 
-  Widget _buildEmptyState() {
-    return const Center(child: Text('There is no message yet!'));
+  Widget _buildEmptyChatsState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Text('در حال حاضر چتی موجود نیست.'),
+          TextButton(
+            onPressed: _showParticipantsList,
+            child: const Text('مکالمه ای شروع کنید.'),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildChatList(List<Chat> chats) {
@@ -81,10 +97,6 @@ class _ChatListScreenState extends State<ChatListScreen> {
             currentUserId: widget.currentUserId,
           ),
     );
-  }
-
-  Widget _buildEmptyChatsState() {
-    return const Center(child: Text('No chats yet! Start a conversation'));
   }
 
   Widget _buildDrawer() {
