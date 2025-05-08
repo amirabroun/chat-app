@@ -24,64 +24,31 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  final FirestoreService _firestoreService = FirestoreService();
-  final AuthService _authService = AuthService();
-  final TextEditingController _controller = TextEditingController();
+  final _firestore = FirestoreService();
+  final _auth = AuthService();
+  final _controller = TextEditingController();
 
-  late final String? currentUserId = _authService.getCurrentUserId();
-  late final Set<String> _participants =
-      widget.participantIds != null
-          ? Set<String>.from(widget.participantIds!)
-          : <String>{};
+  late final String? _currentUserId = _auth.getCurrentUserId();
+  late final Set<String> _participants = Set.from(widget.participantIds ?? []);
   Stream<List<ChatMessage>> _messagesStream = const Stream.empty();
   bool _isSending = false;
   String? _chatId;
 
   @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   void initState() {
     super.initState();
-    _initializeChat();
-  }
-
-  void _initializeChat() {
-    String? chatId = widget.chatId;
-
-    if (chatId != null) {
-      _chatId = chatId;
-      _loadMessages();
-    } else if (_participants.length > 1) {
-      _firestoreService
-          .findExistingChat(participantIds: _participants.toList())
-          .then((existingChat) {
-            if (existingChat != null && mounted) {
-              setState(() {
-                _chatId = existingChat.chatId;
-                _loadMessages();
-              });
-            }
-          })
-          .catchError((e) {
-            if (mounted) {
-              _showErrorSnackbar('خطا در پیدا کردن چت: $e');
-            }
-          });
-    }
-  }
-
-  void _loadMessages() {
-    if (_chatId != null) {
-      setState(() {
-        _messagesStream = _firestoreService.getChatMessagesStream(
-          chatId: _chatId!,
-        );
-        print('درخواست پیام‌ها ارسال شد برای chatId: $_chatId');
-      });
-    }
+    _initChat();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(appBar: _buildAppBar(), body: _buildChatBody());
+    return Scaffold(appBar: _buildAppBar(), body: _buildBody());
   }
 
   AppBar _buildAppBar() {
@@ -102,9 +69,9 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Widget _buildChatBody() {
+  Widget _buildBody() {
     return Column(
-      children: [Expanded(child: _buildMessageStream()), _buildInputField()],
+      children: [Expanded(child: _buildMessageStream()), _buildMessageInput()],
     );
   }
 
@@ -113,8 +80,7 @@ class _ChatScreenState extends State<ChatScreen> {
       stream: _messagesStream,
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-          debugPrint('Error: ${snapshot.error}');
-          return Center(child: Text('Error: ${snapshot.error}'));
+          return _buildCenterText('خطا: ${snapshot.error}');
         }
 
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -123,7 +89,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
         final messages = snapshot.data ?? [];
         return messages.isEmpty
-            ? const Center(child: Text('No messages yet'))
+            ? _buildCenterText('هنوز پیامی وجود ندارد')
             : _buildMessageList(messages);
       },
     );
@@ -135,32 +101,34 @@ class _ChatScreenState extends State<ChatScreen> {
       padding: const EdgeInsets.all(8),
       itemCount: messages.length,
       itemBuilder: (context, index) {
-        final message = messages[index];
-        final isMe = message.senderId == currentUserId;
-        return _buildMessageBubble(message, isMe);
+        final msg = messages[index];
+        final isMe = msg.senderId == _currentUserId;
+        return _buildMessageBubble(msg, isMe);
       },
     );
   }
 
   Widget _buildMessageBubble(ChatMessage message, bool isMe) {
+    final alignment = isMe ? Alignment.centerRight : Alignment.centerLeft;
+    final bgColor = isMe ? Colors.blue : Colors.grey[300];
+    final textColor = isMe ? Colors.white70 : Colors.grey[600];
+
     return Align(
-      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+      alignment: alignment,
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 4),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isMe ? Colors.blue : Colors.grey[300],
+          color: bgColor,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
           crossAxisAlignment:
               isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
-            if (!isMe &&
-                (widget.chatType == ChatType.group ||
-                    widget.chatType == ChatType.direct))
+            if (!isMe && widget.chatType != ChatType.direct)
               FutureBuilder(
-                future: _firestoreService.getUser(userId: message.senderId),
+                future: _firestore.getUser(userId: message.senderId),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const SizedBox(height: 16);
@@ -178,10 +146,7 @@ class _ChatScreenState extends State<ChatScreen> {
             Text(message.text),
             Text(
               _formatTime(message.timestamp),
-              style: TextStyle(
-                fontSize: 10,
-                color: isMe ? Colors.white70 : Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 10, color: textColor),
             ),
           ],
         ),
@@ -189,86 +154,41 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Widget _buildInputField() {
+  Widget _buildMessageInput() {
     return Padding(
-      padding: const EdgeInsets.all(8.0),
+      padding: const EdgeInsets.all(8),
       child: Row(
         children: [
-          Expanded(child: _buildTextInput()),
+          Expanded(child: _buildTextField()),
           const SizedBox(width: 8),
-          _buildSendButton(),
+          _isSending
+              ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+              : IconButton(
+                icon: const Icon(Icons.send),
+                onPressed: _sendMessage,
+              ),
         ],
       ),
     );
   }
 
-  Widget _buildTextInput() {
+  Widget _buildTextField() {
     return TextField(
       controller: _controller,
       decoration: InputDecoration(
-        hintText: 'Type a message...',
+        hintText: '...',
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(24)),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16),
       ),
     );
   }
 
-  Widget _buildSendButton() {
-    return _isSending
-        ? const SizedBox(
-          width: 24,
-          height: 24,
-          child: CircularProgressIndicator(strokeWidth: 2),
-        )
-        : IconButton(icon: const Icon(Icons.send), onPressed: _sendMessage);
-  }
-
-  Future<void> _sendMessage() async {
-    final text = _controller.text.trim();
-    if (text.isEmpty || currentUserId == null) return;
-
-    setState(() => _isSending = true);
-    _controller.clear();
-
-    try {
-      final chatId = await _getOrCreateChatId();
-      await _firestoreService.sendMessage(
-        chatId: chatId,
-        senderId: currentUserId!,
-        text: text,
-      );
-
-      if (mounted) {
-        setState(() {
-          _messagesStream = _firestoreService.getChatMessagesStream(
-            chatId: chatId,
-          );
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        _showErrorSnackbar('Error sending message: ${e.toString()}');
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isSending = false);
-      }
-    }
-  }
-
-  Future<String> _getOrCreateChatId() async {
-    if (_chatId != null) return _chatId!;
-
-    try {
-      return await _firestoreService.createNewChat(
-        type: ChatType.direct,
-        participantIds: _participants.toList(),
-        name: widget.chatName,
-      );
-    } catch (e) {
-      debugPrint('Error creating chat: $e');
-      rethrow;
-    }
+  Widget _buildCenterText(String text) {
+    return Center(child: Text(text));
   }
 
   String _formatTime(DateTime? time) {
@@ -276,16 +196,74 @@ class _ChatScreenState extends State<ChatScreen> {
     return '${time.hour}:${time.minute.toString().padLeft(2, '0')}';
   }
 
-  void _showErrorSnackbar(String message) {
+  void _initChat() async {
+    if (widget.chatId != null) {
+      _chatId = widget.chatId;
+      _subscribeToMessages();
+    } else if (_participants.length > 1) {
+      try {
+        final chat = await _firestore.findExistingChat(
+          participantIds: _participants.toList(),
+        );
+        if (chat != null && mounted) {
+          setState(() {
+            _chatId = chat.chatId;
+            _subscribeToMessages();
+          });
+        }
+      } catch (e) {
+        _showSnackbar('خطا در پیدا کردن چت: $e');
+      }
+    }
+  }
+
+  void _subscribeToMessages() {
+    if (_chatId == null) return;
+    setState(() {
+      _messagesStream = _firestore.getChatMessagesStream(chatId: _chatId!);
+    });
+  }
+
+  Future<void> _sendMessage() async {
+    final text = _controller.text.trim();
+    if (text.isEmpty || _currentUserId == null) return;
+
+    setState(() => _isSending = true);
+    _controller.clear();
+
+    try {
+      final chatId = await _getOrCreateChatId();
+      await _firestore.sendMessage(
+        chatId: chatId,
+        senderId: _currentUserId,
+        text: text,
+      );
+      if (mounted) _subscribeToMessages();
+    } catch (e) {
+      _showSnackbar('خطا در ارسال پیام: $e');
+    } finally {
+      if (mounted) setState(() => _isSending = false);
+    }
+  }
+
+  Future<String> _getOrCreateChatId() async {
+    if (_chatId != null) return _chatId!;
+    try {
+      return await _firestore.createNewChat(
+        type: widget.chatType ?? ChatType.direct,
+        participantIds: _participants.toList(),
+        name: widget.chatName,
+      );
+    } catch (e) {
+      debugPrint('Chat creation failed: $e');
+      rethrow;
+    }
+  }
+
+  void _showSnackbar(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), duration: const Duration(seconds: 3)),
     );
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
   }
 }

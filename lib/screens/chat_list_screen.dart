@@ -5,6 +5,8 @@ import 'package:chat_app/screens/profile_screen.dart';
 import 'package:chat_app/widgets/chat_item.dart';
 import 'package:chat_app/widgets/users_list_widget.dart';
 import 'package:chat_app/screens/chat_screen.dart';
+import 'package:chat_app/components/my_textfield.dart';
+import 'package:chat_app/components/my_button.dart';
 
 class ChatListScreen extends StatefulWidget {
   final String currentUserId;
@@ -29,24 +31,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
     return Scaffold(
       appBar: AppBar(backgroundColor: Theme.of(context).colorScheme.primary),
       body: _buildChatList(),
-      drawer: Drawer(
-        width: 350,
-        backgroundColor: Theme.of(context).colorScheme.secondary,
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.person),
-              title: const Text('Profile'),
-              onTap:
-                  () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const ProfileScreen()),
-                  ),
-            ),
-          ],
-        ),
-      ),
+      drawer: _buildDrawer(),
       floatingActionButton: FloatingActionButton(
         onPressed: _showActionMenu,
         child: const Icon(Icons.add),
@@ -84,6 +69,22 @@ class _ChatListScreenState extends State<ChatListScreen> {
     );
   }
 
+  Widget _buildDrawer() {
+    return Drawer(
+      width: 350,
+      backgroundColor: Theme.of(context).colorScheme.secondary,
+      child: ListTile(
+        leading: const Icon(Icons.person),
+        title: const Text('Profile'),
+        onTap:
+            () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ProfileScreen()),
+            ),
+      ),
+    );
+  }
+
   void _showActionMenu() {
     showModalBottomSheet(
       context: context,
@@ -107,10 +108,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
       children: [
         IconButton(
           icon: Icon(icon, size: 40),
-          onPressed: () {
-            Navigator.pop(context);
-            _showParticipantsList(isGroup);
-          },
+          onPressed: () => _showParticipantsList(isGroup),
         ),
         Text(label),
       ],
@@ -118,6 +116,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
   }
 
   void _showParticipantsList(bool forGroup) {
+    Navigator.pop(context);
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -133,25 +132,33 @@ class _ChatListScreenState extends State<ChatListScreen> {
     );
   }
 
-  void _handleUsersSelection(bool forGroup, List<String> selectedIds) {
+  Future<void> _handleUsersSelection(
+    bool forGroup,
+    List<String> selectedIds,
+  ) async {
     Navigator.pop(context);
-    selectedIds.add(widget.currentUserId);
 
     if (forGroup) {
+      selectedIds.add(widget.currentUserId);
       _createGroup(selectedIds);
-    } else if (selectedIds.length == 2) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder:
-              (_) => ChatScreen(
-                chatName: 'چت با کاربر',
-                chatType: ChatType.direct,
-                participantIds: selectedIds,
-              ),
-        ),
-      );
+      return;
     }
+
+    final otherUserId = selectedIds.first;
+    final user = await _firestoreService.getUser(userId: otherUserId);
+
+    if (!mounted) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder:
+            (_) => ChatScreen(
+              chatName: user.firstName,
+              chatType: ChatType.direct,
+              participantIds: [widget.currentUserId, otherUserId],
+            ),
+      ),
+    );
   }
 
   Future<void> _createGroup(List<String> participantIds) async {
@@ -160,21 +167,17 @@ class _ChatListScreenState extends State<ChatListScreen> {
       builder:
           (context) => AlertDialog(
             title: const Text('نام گروه'),
-            content: TextField(
+            content: MyTextfield(
+              label: 'نام گروه',
               controller: _groupNameController,
-              decoration: const InputDecoration(
-                hintText: 'نام گروه را وارد کنید',
-              ),
+              icon: const Icon(Icons.group),
             ),
             actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('انصراف'),
-              ),
-              TextButton(
+              MyButton(onPressed: () => Navigator.pop(context), text: 'انصراف'),
+              MyButton(
                 onPressed:
                     () => Navigator.pop(context, _groupNameController.text),
-                child: const Text('تایید'),
+                text: 'تایید',
               ),
             ],
           ),
