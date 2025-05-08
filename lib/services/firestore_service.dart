@@ -141,6 +141,47 @@ class FirestoreService {
     return chatRef.id;
   }
 
+  Future<Chat> getChat({required String chatId}) async {
+    try {
+      final doc = await _chatsRef.doc(chatId).get();
+
+      if (doc.exists) {
+        return doc.data()!;
+      } else {
+        throw Exception('Chat with ID $chatId does not exist');
+      }
+    } on FirebaseException catch (e) {
+      throw Exception('Failed to fetch chat: ${e.message}');
+    }
+  }
+
+  Future<void> updateChat({
+    required String chatId,
+    String? name,
+    String? imageUrl,
+    Map<String, dynamic>? lastMessage,
+  }) async {
+    final chatRef = _chatsRef.doc(chatId);
+    final updates = <String, dynamic>{
+      'updated_at': FieldValue.serverTimestamp(),
+    };
+
+    if (name != null) updates['name'] = name;
+    if (imageUrl != null) updates['image_url'] = imageUrl;
+    if (lastMessage != null) updates['last_message'] = lastMessage;
+
+    await chatRef.update(updates);
+  }
+
+  Future<void> deleteChat({required String chatId}) async {
+    try {
+      final chatRef = _chatsRef.doc(chatId);
+      await chatRef.delete();
+    } catch (e) {
+      throw Exception('Error deleting chat: $e');
+    }
+  }
+
   Future<Chat?> findExistingChat({required List<String> participantIds}) async {
     try {
       if (participantIds.isEmpty) return null;

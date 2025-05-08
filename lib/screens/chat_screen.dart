@@ -4,6 +4,8 @@ import 'package:chat_app/services/firestore_service.dart';
 import 'package:chat_app/widgets/user_avatar.dart';
 import 'package:chat_app/models/chat_model.dart';
 import 'package:chat_app/models/message_model.dart';
+import 'package:chat_app/screens/profile_screen.dart';
+import 'package:chat_app/screens/group_profile_screen.dart';
 
 class ChatScreen extends StatefulWidget {
   final String chatName;
@@ -13,10 +15,10 @@ class ChatScreen extends StatefulWidget {
 
   const ChatScreen({
     super.key,
-    String? chatName,
     required this.chatType,
     this.participantIds,
     this.chatId,
+    String? chatName,
   }) : chatName = chatName ?? 'New Chat';
 
   @override
@@ -29,10 +31,20 @@ class _ChatScreenState extends State<ChatScreen> {
   final _controller = TextEditingController();
 
   late final String? _currentUserId = _auth.getCurrentUserId();
-  late final Set<String> _participants = Set.from(widget.participantIds ?? []);
+  late final Set<String> _participantSet = Set.from(
+    widget.participantIds ?? [],
+  );
+  late final String? _otherUserId;
+
   Stream<List<ChatMessage>> _messagesStream = const Stream.empty();
+  late String _chatId;
   bool _isSending = false;
-  String? _chatId;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeChat();
+  }
 
   @override
   void dispose() {
@@ -41,38 +53,49 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   @override
-  void initState() {
-    super.initState();
-    _initChat();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return Scaffold(appBar: _buildAppBar(), body: _buildBody());
-  }
-
-  AppBar _buildAppBar() {
-    return AppBar(
-      title: Row(
+    return Scaffold(
+      appBar: _buildAppBar(),
+      body: Column(
         children: [
-          UserAvatar(name: widget.chatName),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              widget.chatName,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
+          Expanded(child: _buildMessageStream()),
+          _buildMessageInput(),
         ],
       ),
     );
   }
 
-  Widget _buildBody() {
-    return Column(
-      children: [Expanded(child: _buildMessageStream()), _buildMessageInput()],
+  AppBar _buildAppBar() {
+    return AppBar(
+      title: InkWell(
+        onTap: _navigateToProfile,
+        borderRadius: BorderRadius.circular(8),
+        child: Row(
+          children: [
+            UserAvatar(name: widget.chatName),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                widget.chatName,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
+  }
+
+  void _navigateToProfile() {
+    if (!context.mounted) return;
+
+    final route =
+        widget.chatType == ChatType.group
+            ? GroupProfileScreen(chatId: _chatId)
+            : ProfileScreen(userId: _otherUserId);
+
+    Navigator.push(context, MaterialPageRoute(builder: (_) => route));
   }
 
   Widget _buildMessageStream() {
@@ -80,7 +103,7 @@ class _ChatScreenState extends State<ChatScreen> {
       stream: _messagesStream,
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-          return _buildCenterText('خطا: ${snapshot.error}');
+          return _centeredText('خطا: ${snapshot.error}');
         }
 
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -89,7 +112,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
         final messages = snapshot.data ?? [];
         return messages.isEmpty
-            ? _buildCenterText('هنوز پیامی وجود ندارد')
+            ? _centeredText('هنوز پیامی وجود ندارد')
             : _buildMessageList(messages);
       },
     );
@@ -101,25 +124,21 @@ class _ChatScreenState extends State<ChatScreen> {
       padding: const EdgeInsets.all(8),
       itemCount: messages.length,
       itemBuilder: (context, index) {
-        final msg = messages[index];
-        final isMe = msg.senderId == _currentUserId;
-        return _buildMessageBubble(msg, isMe);
+        final message = messages[index];
+        final isMe = message.senderId == _currentUserId;
+        return _buildMessageBubble(message, isMe);
       },
     );
   }
 
   Widget _buildMessageBubble(ChatMessage message, bool isMe) {
-    final alignment = isMe ? Alignment.centerRight : Alignment.centerLeft;
-    final bgColor = isMe ? Colors.blue : Colors.grey[300];
-    final textColor = isMe ? Colors.white70 : Colors.grey[600];
-
     return Align(
-      alignment: alignment,
+      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 4),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: bgColor,
+          color: isMe ? Colors.blue : Colors.grey[300],
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
@@ -127,30 +146,52 @@ class _ChatScreenState extends State<ChatScreen> {
               isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
             if (!isMe && widget.chatType != ChatType.direct)
-              FutureBuilder(
-                future: _firestore.getUser(userId: message.senderId),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const SizedBox(height: 16);
-                  }
-                  final user = snapshot.data;
-                  return Text(
-                    user?.firstName ?? 'Unknown',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    ),
-                  );
-                },
-              ),
+              _buildSenderName(message.senderId),
             Text(message.text),
             Text(
               _formatTime(message.timestamp),
-              style: TextStyle(fontSize: 10, color: textColor),
+              style: TextStyle(
+                fontSize: 10,
+                color: isMe ? Colors.white70 : Colors.grey[600],
+              ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildSenderName(String senderId) {
+    return FutureBuilder(
+      future: _firestore.getUser(userId: senderId),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SizedBox(height: 16);
+        }
+
+        final user = snapshot.data;
+        final userName = user?.firstName ?? 'Unknown';
+
+        return InkWell(
+          onTap: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ProfileScreen(userId: senderId),
+              ),
+            );
+          },
+          child: Text(
+            userName,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+              decoration: TextDecoration.underline,
+              color: Colors.blueAccent,
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -187,40 +228,40 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Widget _buildCenterText(String text) {
-    return Center(child: Text(text));
+  Widget _centeredText(String text) => Center(child: Text(text));
+
+  String _formatTime(DateTime time) {
+    final hour = time.hour;
+    final minute = time.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
   }
 
-  String _formatTime(DateTime? time) {
-    if (time == null) return '';
-    return '${time.hour}:${time.minute.toString().padLeft(2, '0')}';
-  }
-
-  void _initChat() async {
+  Future<void> _initializeChat() async {
     if (widget.chatId != null) {
-      _chatId = widget.chatId;
-      _subscribeToMessages();
-    } else if (_participants.length > 1) {
-      try {
-        final chat = await _firestore.findExistingChat(
-          participantIds: _participants.toList(),
-        );
-        if (chat != null && mounted) {
-          setState(() {
-            _chatId = chat.chatId;
-            _subscribeToMessages();
-          });
-        }
-      } catch (e) {
-        _showSnackbar('خطا در پیدا کردن چت: $e');
-      }
+      final chat = await _firestore.getChat(chatId: widget.chatId!);
+      _setupChat(chat, widget.chatId!);
+      return;
+    }
+
+    final existingChat = await _firestore.findExistingChat(
+      participantIds: _participantSet.toList(),
+    );
+
+    if (!mounted) return;
+
+    if (existingChat != null) {
+      _setupChat(existingChat, existingChat.chatId);
     }
   }
 
-  void _subscribeToMessages() {
-    if (_chatId == null) return;
+  void _setupChat(Chat chat, String chatId) {
     setState(() {
-      _messagesStream = _firestore.getChatMessagesStream(chatId: _chatId!);
+      _chatId = chatId;
+      _messagesStream = _firestore.getChatMessagesStream(chatId: chatId);
+      _otherUserId = chat.participants.firstWhere(
+        (id) => id != _currentUserId,
+        orElse: () => '',
+      );
     });
   }
 
@@ -238,22 +279,27 @@ class _ChatScreenState extends State<ChatScreen> {
         senderId: _currentUserId,
         text: text,
       );
-      if (mounted) _subscribeToMessages();
     } catch (e) {
       _showSnackbar('خطا در ارسال پیام: $e');
     } finally {
-      if (mounted) setState(() => _isSending = false);
+      if (mounted) {
+        setState(() {
+          _messagesStream = _firestore.getChatMessagesStream(chatId: _chatId);
+          _isSending = false;
+        });
+      }
     }
   }
 
   Future<String> _getOrCreateChatId() async {
-    if (_chatId != null) return _chatId!;
     try {
-      return await _firestore.createNewChat(
+      final newChatId = await _firestore.createNewChat(
         type: widget.chatType ?? ChatType.direct,
-        participantIds: _participants.toList(),
+        participantIds: _participantSet.toList(),
         name: widget.chatName,
       );
+      setState(() => _chatId = newChatId);
+      return newChatId;
     } catch (e) {
       debugPrint('Chat creation failed: $e');
       rethrow;

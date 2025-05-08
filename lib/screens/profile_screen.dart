@@ -5,7 +5,9 @@ import 'package:chat_app/screens/login_screen.dart';
 import 'package:chat_app/components/my_textfield.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  final String? userId;
+
+  const ProfileScreen({super.key, this.userId});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -19,11 +21,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _emailController = TextEditingController();
 
   bool _isLoading = true;
+  bool _isOwner = false;
 
   @override
   void initState() {
     super.initState();
-    _loadAuthUser();
+    _loadUser();
   }
 
   @override
@@ -40,72 +43,76 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   AppBar _buildAppBar() {
-    final actions = [
-      IconButton(
-        icon: const Icon(Icons.check),
-        onPressed: _saveUserData,
-        tooltip: 'ذخیره تغییرات',
-      ),
-      IconButton(
-        icon: const Icon(Icons.logout),
-        tooltip: 'خروج از حساب',
-        onPressed: _handleLogout,
-      ),
-    ];
-
     return AppBar(
       title: const Text('پروفایل'),
-      actions: actions,
       backgroundColor: Theme.of(context).colorScheme.primary,
+      actions:
+          _isOwner
+              ? [
+                IconButton(
+                  icon: const Icon(Icons.check),
+                  tooltip: 'ذخیره تغییرات',
+                  onPressed: _saveUserData,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.logout),
+                  tooltip: 'خروج از حساب',
+                  onPressed: _handleLogout,
+                ),
+              ]
+              : null,
     );
   }
 
   Widget _buildProfileForm() {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    final formFields = [
-      MyTextfield(
-        label: 'نام',
-        controller: _firstNameController,
-        icon: const Icon(Icons.person),
-      ),
-      const SizedBox(height: 20),
-      MyTextfield(
-        label: 'نام خانوادگی',
-        controller: _lastNameController,
-        icon: const Icon(Icons.person_outline),
-      ),
-      const SizedBox(height: 20),
-      MyTextfield(
-        label: 'ایمیل',
-        controller: _emailController,
-        icon: const Icon(Icons.email),
-        enabled: false,
-      ),
-    ];
+    if (_isLoading) return const Center(child: CircularProgressIndicator());
 
     return Form(
       key: _formKey,
       child: Padding(
         padding: const EdgeInsets.all(20),
-        child: Column(children: formFields),
+        child: Column(
+          children: [
+            MyTextfield(
+              label: 'نام',
+              controller: _firstNameController,
+              icon: const Icon(Icons.person),
+              enabled: _isOwner,
+            ),
+            const SizedBox(height: 20),
+            MyTextfield(
+              label: 'نام خانوادگی',
+              controller: _lastNameController,
+              icon: const Icon(Icons.person_outline),
+              enabled: _isOwner,
+            ),
+            const SizedBox(height: 20),
+            MyTextfield(
+              label: 'ایمیل',
+              controller: _emailController,
+              icon: const Icon(Icons.email),
+              enabled: false,
+            ),
+          ],
+        ),
       ),
     );
   }
 
-
-  void _loadAuthUser() async {
+  void _loadUser() async {
     setState(() => _isLoading = true);
     try {
-      final userId = AuthService().getCurrentUserId();
-      if (userId == null) {
+      final currentUserId = AuthService().getCurrentUserId();
+      if (currentUserId == null) {
         _redirectToLogin();
         return;
       }
 
-      _updateUserState(await FirestoreService().getUser(userId: userId));
+      final targetUserId = widget.userId ?? currentUserId;
+      _isOwner = (targetUserId == currentUserId);
+
+      final user = await FirestoreService().getUser(userId: targetUserId);
+      _updateUserState(user);
     } catch (e) {
       debugPrint(e.toString());
       _showMessage('خطا در بارگذاری اطلاعات کاربر');
@@ -121,7 +128,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _emailController.text = user.email;
       _firstNameController.text = user.firstName;
       _lastNameController.text = user.lastName;
-      _isLoading = false;
     });
   }
 
