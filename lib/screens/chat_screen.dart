@@ -31,13 +31,13 @@ class _ChatScreenState extends State<ChatScreen> {
   final _controller = TextEditingController();
 
   late final String? _currentUserId = _auth.getCurrentUserId();
+  late final String? _otherUserId;
   late final Set<String> _participantSet = Set.from(
     widget.participantIds ?? [],
   );
-  late final String? _otherUserId;
 
   Stream<List<ChatMessage>> _messagesStream = const Stream.empty();
-  late String _chatId;
+  late String? _chatId;
   bool _isSending = false;
 
   @override
@@ -88,11 +88,11 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _navigateToProfile() {
-    if (!context.mounted) return;
+    if (!mounted) return;
 
     final route =
-        widget.chatType == ChatType.group
-            ? GroupProfileScreen(chatId: _chatId)
+        (widget.chatType == ChatType.group && _chatId != null)
+            ? GroupProfileScreen(chatId: _chatId!)
             : ProfileScreen(userId: _otherUserId);
 
     Navigator.push(context, MaterialPageRoute(builder: (_) => route));
@@ -249,7 +249,11 @@ class _ChatScreenState extends State<ChatScreen> {
 
     if (!mounted) return;
 
-    if (existingChat != null) {
+    if (existingChat == null) {
+      setState(() {
+        _otherUserId = _participantSet.firstWhere((id) => id != _currentUserId);
+      });
+    } else {
       _setupChat(existingChat, existingChat.chatId);
     }
   }
@@ -279,19 +283,23 @@ class _ChatScreenState extends State<ChatScreen> {
         senderId: _currentUserId,
         text: text,
       );
-    } catch (e) {
-      _showSnackbar('خطا در ارسال پیام: $e');
-    } finally {
+
       if (mounted) {
         setState(() {
-          _messagesStream = _firestore.getChatMessagesStream(chatId: _chatId);
+          _messagesStream = _firestore.getChatMessagesStream(chatId: chatId);
           _isSending = false;
         });
       }
+    } catch (e) {
+      _showSnackbar('خطا در ارسال پیام: $e');
     }
   }
 
   Future<String> _getOrCreateChatId() async {
+    if (_chatId != null) {
+      return _chatId!;
+    }
+
     try {
       final newChatId = await _firestore.createNewChat(
         type: widget.chatType ?? ChatType.direct,
