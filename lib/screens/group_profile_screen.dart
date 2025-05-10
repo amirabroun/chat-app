@@ -57,7 +57,10 @@ class _GroupProfileScreenState extends State<GroupProfileScreen> {
       });
     } catch (e) {
       debugPrint('Error fetching group data: $e');
-      _showError('خطا در بارگیری اطلاعات گروه');
+      setState(() {
+        _errorMessage = 'خطا در بارگیری اطلاعات گروه';
+        _isLoading = false;
+      });
     }
   }
 
@@ -109,13 +112,6 @@ class _GroupProfileScreenState extends State<GroupProfileScreen> {
       debugPrint('Error deleting group: $e');
       _showSnackbar('خطا در حذف گروه');
     }
-  }
-
-  void _showError(String message) {
-    setState(() {
-      _errorMessage = message;
-      _isLoading = false;
-    });
   }
 
   void _showSnackbar(String message) {
