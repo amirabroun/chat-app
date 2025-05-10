@@ -92,6 +92,30 @@ class FirestoreService {
     });
   }
 
+  Future<List<User>> getChatUsers(String chatId) async {
+    try {
+      final chat = await getChat(chatId: chatId);
+      final participantIds = chat.participants;
+
+      if (participantIds.isEmpty) return [];
+
+      List<User> users = [];
+
+      for (var i = 0; i < participantIds.length; i += 10) {
+        final batch = participantIds.skip(i).take(10).toList();
+
+        final snapshot =
+            await _usersRef.where(FieldPath.documentId, whereIn: batch).get();
+
+        users.addAll(snapshot.docs.map((doc) => doc.data()));
+      }
+
+      return users;
+    } on FirebaseException catch (e) {
+      throw Exception('Failed to fetch chat users: ${e.message}');
+    }
+  }
+
   Future<List<User>> getUsers({String? excludeUserId}) async {
     try {
       final snapshot = await _usersRef.get();

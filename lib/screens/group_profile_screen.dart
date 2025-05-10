@@ -6,6 +6,7 @@ import 'package:chat_app/models/chat_model.dart';
 import 'package:chat_app/services/auth_service.dart';
 import 'package:chat_app/screens/chat_screen.dart';
 import 'package:chat_app/widgets/user_avatar.dart';
+import 'package:chat_app/screens/chat_list_screen.dart';
 
 class GroupProfileScreen extends StatefulWidget {
   final String chatId;
@@ -48,7 +49,7 @@ class _GroupProfileScreenState extends State<GroupProfileScreen> {
   Future<void> _fetchGroupData() async {
     try {
       final chat = await _firestoreService.getChat(chatId: widget.chatId);
-      final allUsers = await _firestoreService.getUsers();
+      final allUsers = await _firestoreService.getChatUsers(widget.chatId);
 
       setState(() {
         _groupNameController.text = chat.name ?? '';
@@ -107,7 +108,14 @@ class _GroupProfileScreenState extends State<GroupProfileScreen> {
 
     try {
       await _firestoreService.deleteChat(chatId: widget.chatId);
-      if (mounted) Navigator.pop(context);
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ChatListScreen(currentUserId: currentUserId!),
+          ),
+        );
+      }
     } catch (e) {
       debugPrint('Error deleting group: $e');
       _showSnackbar('خطا در حذف گروه');
@@ -182,23 +190,35 @@ class _GroupProfileScreenState extends State<GroupProfileScreen> {
   }
 
   Widget _buildUserTile(User user) {
+    final isCurrentUser = user.userId == currentUserId;
+    final userName = user.firstName ?? '';
+
     return ListTile(
-      leading: UserAvatar(name: user.firstName!),
-      title: Text(user.firstName!),
-      subtitle: Text('Online', style: TextStyle(color: Colors.grey[600])),
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder:
-                (context) => ChatScreen(
-                  chatName: user.firstName!,
-                  participantIds: [currentUserId!, user.userId],
-                  chatType: ChatType.direct,
-                ),
-          ),
-        );
-      },
+      leading: UserAvatar(name: userName),
+      title: Text(
+        userName,
+        style: TextStyle(color: isCurrentUser ? Colors.grey : Colors.black),
+      ),
+      subtitle: Text(
+        isCurrentUser ? 'This is you' : 'Online',
+        style: TextStyle(color: Colors.grey[600]),
+      ),
+      onTap: isCurrentUser ? null : () => _navigateToChat(user),
+      enabled: !isCurrentUser,
+    );
+  }
+
+  void _navigateToChat(User user) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder:
+            (context) => ChatScreen(
+              chatName: user.firstName ?? '',
+              participantIds: [currentUserId!, user.userId],
+              chatType: ChatType.direct,
+            ),
+      ),
     );
   }
 
