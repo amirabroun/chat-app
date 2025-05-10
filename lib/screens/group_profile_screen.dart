@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:chat_app/services/firestore_service.dart';
+import 'package:chat_app/models/user_model.dart';
 import 'package:chat_app/components/my_textfield.dart';
 import 'package:chat_app/models/chat_model.dart';
+import 'package:chat_app/services/auth_service.dart';
+import 'package:chat_app/screens/chat_screen.dart';
+import 'package:chat_app/widgets/user_avatar.dart';
 
 class GroupProfileScreen extends StatefulWidget {
   final String chatId;
@@ -13,80 +17,93 @@ class GroupProfileScreen extends StatefulWidget {
 }
 
 class _GroupProfileScreenState extends State<GroupProfileScreen> {
+  String? currentUserId;
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
+  final _groupNameController = TextEditingController();
+  final _firestoreService = FirestoreService();
+
+  List<User> _groupMembers = [];
 
   bool _isLoading = true;
-  bool _isUpdating = false;
-
-  Chat? _chat;
+  bool _isSaving = false;
   String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    _fetchChatData();
+    _initializeCurrentUserId();
+    _fetchGroupData();
+  }
+
+  Future<void> _initializeCurrentUserId() async {
+    currentUserId = AuthService().getCurrentUserId();
   }
 
   @override
   void dispose() {
-    _nameController.dispose();
+    _groupNameController.dispose();
     super.dispose();
   }
 
-  Future<void> _fetchChatData() async {
+  Future<void> _fetchGroupData() async {
     try {
-      final chat = await FirestoreService().getChat(chatId: widget.chatId);
-      if (chat == false) {
-        _setError('گروه یافت نشد');
-        return;
-      }
+      final chat = await _firestoreService.getChat(chatId: widget.chatId);
+      final allUsers = await _firestoreService.getUsers();
 
       setState(() {
-        _chat = chat;
-        _nameController.text = chat.name ?? '';
+        _groupNameController.text = chat.name ?? '';
+        _groupMembers = allUsers;
         _isLoading = false;
       });
     } catch (e) {
-      debugPrint('Error loading chat: $e');
-      _setError('خطا در دریافت اطلاعات گروه');
+      debugPrint('Error fetching group data: $e');
+      _showError('خطا در بارگیری اطلاعات گروه');
     }
   }
 
-  void _setError(String message) {
-    if (!mounted) return;
-    setState(() {
-      _errorMessage = message;
-      _isLoading = false;
-    });
-  }
+  Future<void> _saveGroupName() async {
+    if (!_formKey.currentState!.validate()) return;
 
-  Future<void> _updateGroup() async {
-    if (!_formKey.currentState!.validate() || _chat == null) return;
-
-    setState(() => _isUpdating = true);
+    setState(() => _isSaving = true);
 
     try {
-      await FirestoreService().updateChat(
+      await _firestoreService.updateChat(
         chatId: widget.chatId,
-        name: _nameController.text.trim(),
+        name: _groupNameController.text.trim(),
       );
-      if (!mounted) return;
-      _showSnackbar('نام گروه با موفقیت به‌روزرسانی شد');
+      _showSnackbar('نام گروه با موفقیت ذخیره شد');
     } catch (e) {
       debugPrint('Error updating group name: $e');
-      _showSnackbar('خطا در به‌روزرسانی نام گروه');
+      _showSnackbar('خطا در ذخیره‌سازی');
     } finally {
-      if (mounted) setState(() => _isUpdating = false);
+      setState(() => _isSaving = false);
     }
   }
 
   Future<void> _deleteGroup() async {
-    final confirm = await _showDeleteConfirmation();
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder:
+          (_) => AlertDialog(
+            title: const Text('حذف گروه'),
+            content: const Text('آیا مطمئنی که می‌خوای این گروه رو حذف کنی؟'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('لغو'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('حذف', style: TextStyle(color: Colors.red)),
+              ),
+            ],
+          ),
+    );
+
     if (confirm != true) return;
 
     try {
-      await FirestoreService().deleteChat(chatId: widget.chatId);
+      await _firestoreService.deleteChat(chatId: widget.chatId);
       if (mounted) Navigator.pop(context);
     } catch (e) {
       debugPrint('Error deleting group: $e');
@@ -94,25 +111,11 @@ class _GroupProfileScreenState extends State<GroupProfileScreen> {
     }
   }
 
-  Future<bool?> _showDeleteConfirmation() {
-    return showDialog<bool>(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('حذف گروه'),
-            content: const Text('آیا مطمئنی می‌خوای گروه رو حذف کنی؟'),
-            actions: [
-              TextButton(
-                child: const Text('لغو'),
-                onPressed: () => Navigator.pop(context, false),
-              ),
-              TextButton(
-                child: const Text('حذف'),
-                onPressed: () => Navigator.pop(context, true),
-              ),
-            ],
-          ),
-    );
+  void _showError(String message) {
+    setState(() {
+      _errorMessage = message;
+      _isLoading = false;
+    });
   }
 
   void _showSnackbar(String message) {
@@ -126,23 +129,16 @@ class _GroupProfileScreenState extends State<GroupProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('پروفایل گروه')),
-      body: _buildBody(),
+      body:
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _errorMessage != null
+              ? Center(child: Text(_errorMessage!))
+              : _buildForm(),
     );
   }
 
-  Widget _buildBody() {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (_errorMessage != null) {
-      return Center(child: Text(_errorMessage!));
-    }
-
-    if (_chat == null) {
-      return const Center(child: Text('گروه یافت نشد'));
-    }
-
+  Widget _buildForm() {
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Form(
@@ -150,21 +146,15 @@ class _GroupProfileScreenState extends State<GroupProfileScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            MyTextfield(
-              label: 'نام گروه',
-              controller: _nameController,
-              icon: const Icon(Icons.group),
-              validator:
-                  (value) => value!.isEmpty ? 'نام گروه الزامی است' : null,
-            ),
+            _buildGroupNameField(),
             const SizedBox(height: 20),
             const Text(
-              'اعضای گروه:',
-              style: TextStyle(fontWeight: FontWeight.bold),
+              'اعضای گروه',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
-            const SizedBox(height: 10),
-            ..._chat!.participants.map((id) => Text(id)),
-            const Spacer(),
+            const SizedBox(height: 8),
+            _buildMembersList(),
+            const SizedBox(height: 16),
             _buildActionButtons(),
           ],
         ),
@@ -172,29 +162,81 @@ class _GroupProfileScreenState extends State<GroupProfileScreen> {
     );
   }
 
+  Widget _buildGroupNameField() {
+    return MyTextfield(
+      label: 'نام گروه',
+      controller: _groupNameController,
+      icon: const Icon(Icons.group),
+      validator:
+          (value) =>
+              value!.trim().isEmpty ? 'نام گروه نمی‌تواند خالی باشد' : null,
+    );
+  }
+
+  Widget _buildMembersList() {
+    return Expanded(
+      child: ListView.builder(
+        itemCount: _groupMembers.length,
+        itemBuilder: (context, index) {
+          final user = _groupMembers[index];
+          return _buildUserTile(user);
+        },
+      ),
+    );
+  }
+
+  Widget _buildUserTile(User user) {
+    return ListTile(
+      leading: UserAvatar(name: user.firstName!),
+      title: Text(user.firstName!),
+      subtitle: Text('Online', style: TextStyle(color: Colors.grey[600])),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder:
+                (context) => ChatScreen(
+                  chatName: user.firstName!,
+                  participantIds: [currentUserId!, user.userId],
+                  chatType: ChatType.direct,
+                ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildActionButtons() {
     return Row(
       children: [
-        ElevatedButton.icon(
-          onPressed: _isUpdating ? null : _updateGroup,
-          icon: const Icon(Icons.save),
-          label:
-              _isUpdating
-                  ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                  : const Text('ذخیره تغییرات'),
-        ),
-        const SizedBox(width: 16),
-        OutlinedButton.icon(
-          onPressed: _isUpdating ? null : _deleteGroup,
-          icon: const Icon(Icons.delete),
-          label: const Text('حذف گروه'),
-          style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
-        ),
+        _buildSaveButton(),
+        const SizedBox(width: 12),
+        _buildDeleteButton(),
       ],
+    );
+  }
+
+  Widget _buildSaveButton() {
+    return ElevatedButton.icon(
+      onPressed: _isSaving ? null : _saveGroupName,
+      icon: const Icon(Icons.save),
+      label:
+          _isSaving
+              ? const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+              : const Text('ذخیره'),
+    );
+  }
+
+  Widget _buildDeleteButton() {
+    return OutlinedButton.icon(
+      onPressed: _isSaving ? null : _deleteGroup,
+      icon: const Icon(Icons.delete_outline),
+      label: const Text('حذف گروه'),
+      style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
     );
   }
 }
