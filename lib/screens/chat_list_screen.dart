@@ -79,7 +79,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
         onTap:
             () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const ProfileScreen()),
+              MaterialPageRoute(builder: (context) => const ProfileScreen()),
             ),
       ),
     );
