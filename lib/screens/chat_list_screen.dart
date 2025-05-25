@@ -10,6 +10,7 @@ import 'package:chat_app/components/my_button.dart';
 
 class ChatListScreen extends StatefulWidget {
   final String currentUserId;
+
   const ChatListScreen({super.key, required this.currentUserId});
 
   @override
@@ -29,7 +30,10 @@ class _ChatListScreenState extends State<ChatListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(backgroundColor: Theme.of(context).colorScheme.primary),
+      appBar: AppBar(
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        iconTheme: IconThemeData(color: Colors.white),
+      ),
       body: _buildChatList(),
       drawer: _buildDrawer(),
       floatingActionButton: FloatingActionButton(
@@ -73,14 +77,16 @@ class _ChatListScreenState extends State<ChatListScreen> {
     return Drawer(
       width: 350,
       backgroundColor: Theme.of(context).colorScheme.secondary,
-      child: ListTile(
-        leading: const Icon(Icons.person),
-        title: const Text('Profile'),
-        onTap:
-            () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const ProfileScreen()),
-            ),
+      child: SafeArea(
+        child: ListTile(
+          leading: const Icon(Icons.person, color: Colors.white),
+          title: const Text('Profile', style: TextStyle(color: Colors.white)),
+          onTap:
+              () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ProfileScreen()),
+              ),
+        ),
       ),
     );
   }
@@ -91,12 +97,14 @@ class _ChatListScreenState extends State<ChatListScreen> {
       builder:
           (_) => Padding(
             padding: const EdgeInsets.all(24),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _actionButton(Icons.group, 'ساخت گروه', true),
-                _actionButton(Icons.person, 'ارسال پیام', false),
-              ],
+            child: SafeArea(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _actionButton(Icons.group, 'ساخت گروه', true),
+                  _actionButton(Icons.person, 'ارسال پیام', false),
+                ],
+              ),
             ),
           ),
     );
@@ -119,6 +127,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
     Navigator.pop(context);
     showModalBottomSheet(
       context: context,
+      useSafeArea: true,
       isScrollControlled: true,
       builder:
           (_) => Padding(

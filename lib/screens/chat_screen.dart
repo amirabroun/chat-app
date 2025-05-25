@@ -138,7 +138,7 @@ class _ChatScreenState extends State<ChatScreen> {
         margin: const EdgeInsets.symmetric(vertical: 4),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isMe ? Colors.blue : Colors.grey[300],
+          color: isMe ? Colors.blueAccent[200] : Colors.grey[300],
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
@@ -147,11 +147,17 @@ class _ChatScreenState extends State<ChatScreen> {
           children: [
             if (!isMe && widget.chatType != ChatType.direct)
               _buildSenderName(message.senderId),
-            Text(message.text),
+            Text(
+              message.text,
+              style: TextStyle(
+                fontSize: 18,
+                color: isMe ? Colors.white : Colors.black,
+              ),
+            ),
             Text(
               _formatTime(message.timestamp),
               style: TextStyle(
-                fontSize: 10,
+                fontSize: 14,
                 color: isMe ? Colors.white70 : Colors.grey[600],
               ),
             ),
@@ -184,9 +190,8 @@ class _ChatScreenState extends State<ChatScreen> {
           child: Text(
             userName,
             style: const TextStyle(
+              fontSize: 18,
               fontWeight: FontWeight.bold,
-              fontSize: 12,
-              decoration: TextDecoration.underline,
               color: Colors.blueAccent,
             ),
           ),
@@ -196,23 +201,26 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildMessageInput() {
-    return Padding(
+    return Container(
+      decoration: BoxDecoration(color: Colors.grey[300]),
       padding: const EdgeInsets.all(8),
-      child: Row(
-        children: [
-          Expanded(child: _buildTextField()),
-          const SizedBox(width: 8),
-          _isSending
-              ? const SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-              : IconButton(
-                icon: const Icon(Icons.send),
-                onPressed: _sendMessage,
-              ),
-        ],
+      child: SafeArea(
+        child: Row(
+          spacing: 8,
+          children: [
+            Expanded(child: _buildTextField()),
+            _isSending
+                ? const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+                : IconButton(
+                  icon: const Icon(Icons.send),
+                  onPressed: _sendMessage,
+                ),
+          ],
+        ),
       ),
     );
   }
@@ -220,9 +228,11 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget _buildTextField() {
     return TextField(
       controller: _controller,
+      style: TextStyle(fontSize: 18, color: Colors.black),
       decoration: InputDecoration(
-        hintText: '...',
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(24)),
+        hintText: 'Message',
+        hintStyle: TextStyle(fontSize: 18, color: Colors.grey[600]),
+        border: InputBorder.none,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16),
       ),
     );
