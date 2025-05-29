@@ -273,8 +273,9 @@ class FirestoreService {
   }
 
   Stream<List<ChatMessage>> getChatMessagesStream({required String chatId}) {
-    return _firestore
-        .collection('chats/$chatId/messages')
+    final messagesRef = _firestore.collection('chats/$chatId/messages');
+
+    return messagesRef
         .orderBy('timestamp', descending: true)
         .snapshots()
         .map(
@@ -341,33 +342,5 @@ class FirestoreService {
                 return !seenBy.contains(userId);
               }).length,
         );
-  }
-
-  Future<List<ChatMessage>> getPaginatedMessages(
-    String chatId, {
-    int limit = 20,
-    ChatMessage? lastMessage,
-  }) async {
-    final messagesRef = _firestore
-        .collection('chats/$chatId/messages')
-        .withConverter<Map<String, dynamic>>(
-          fromFirestore: (snapshot, _) => snapshot.data()!,
-          toFirestore: (data, _) => data,
-        );
-
-    Query<Map<String, dynamic>> query = messagesRef
-        .orderBy('timestamp', descending: true)
-        .limit(limit);
-
-    if (lastMessage != null) {
-      query = query.startAfter([lastMessage.timestamp]);
-    }
-
-    final snapshot = await query.get();
-    return snapshot.docs.map((doc) {
-      return ChatMessage.fromFirestore(
-        doc as DocumentSnapshot<Map<String, dynamic>>,
-      );
-    }).toList();
   }
 }
