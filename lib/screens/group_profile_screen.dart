@@ -191,7 +191,7 @@ class _GroupProfileScreenState extends State<GroupProfileScreen> {
 
   Widget _buildUserTile(User user) {
     final isCurrentUser = user.userId == currentUserId;
-    final userName = user.firstName ?? '';
+    final userName = '${user.firstName} ${user.lastName}';
 
     return ListTile(
       leading: UserAvatar(name: userName),
@@ -214,7 +214,7 @@ class _GroupProfileScreenState extends State<GroupProfileScreen> {
       MaterialPageRoute(
         builder:
             (context) => ChatScreen(
-              chatName: user.firstName ?? '',
+              chatName: user.firstName,
               participantIds: [currentUserId!, user.userId],
               chatType: ChatType.direct,
             ),

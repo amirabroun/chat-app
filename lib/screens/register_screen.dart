@@ -17,6 +17,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPWController = TextEditingController();
+  final _firstNameController = TextEditingController();
+  final _lastNameController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
   @override
@@ -32,6 +34,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPWController.dispose();
+    _firstNameController.dispose();
+    _lastNameController.dispose();
     super.dispose();
   }
 
@@ -48,7 +52,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               const SizedBox(height: 24),
               _buildFormFields(),
               const SizedBox(height: 50),
-              MyButton(text: 'ثبت‌ نام', onPressed: _registerUser, width: 320,),
+              MyButton(text: 'ثبت‌ نام', onPressed: _registerUser, width: 320),
               const SizedBox(height: 16),
               _buildLoginLink(),
             ],
@@ -79,14 +83,43 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return Form(
       key: _formKey,
       child: Column(
+        spacing: 16,
         children: [
+          _buildFirstNameField(),
+          _buildLastNameField(),
           _buildEmailField(),
-          const SizedBox(height: 16),
           _buildPasswordField(),
-          const SizedBox(height: 16),
           _buildConfirmPasswordField(),
         ],
       ),
+    );
+  }
+
+  Widget _buildFirstNameField() {
+    return MyTextfield(
+      label: 'نام',
+      controller: _firstNameController,
+      icon: const Icon(Icons.person),
+      validator: (value) {
+        if (value == null || value.trim().isEmpty) {
+          return 'نام را وارد کنید';
+        }
+        return null;
+      },
+    );
+  }
+
+  Widget _buildLastNameField() {
+    return MyTextfield(
+      label: 'نام خانوادگی',
+      controller: _lastNameController,
+      icon: const Icon(Icons.person),
+      validator: (value) {
+        if (value == null || value.trim().isEmpty) {
+          return 'نام خانوادگی را وارد کنید';
+        }
+        return null;
+      },
     );
   }
 
@@ -168,6 +201,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     try {
       final email = _emailController.text.trim();
       final password = _passwordController.text.trim();
+      final firstName = _firstNameController.text.trim();
+      final lastName = _lastNameController.text.trim();
 
       final userCredential = await AuthService().signUpWithEmail(
         email: email,
@@ -179,9 +214,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
       await FirestoreService().createUser(
         userId: userCredential!.user!.uid,
         email: email,
+        firstName: firstName,
+        lastName: lastName,
       );
 
       _showMessage('ثبت‌نام با موفقیت انجام شد');
+      _emailController.clear();
+      _passwordController.clear();
+      _confirmPWController.clear();
+      _firstNameController.clear();
+      _lastNameController.clear();
       _navigateToProfile();
     } catch (e) {
       if (!mounted) return;

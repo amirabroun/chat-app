@@ -122,7 +122,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _markMessagesAsSeen(List<ChatMessage> messages) async {
-    if (_currentUserId == null) return;
+    if (_currentUserId == null || _chatId == null) return;
     for (final msg in messages) {
       if (!msg.seenBy.contains(_currentUserId) &&
           msg.senderId != _currentUserId) {
@@ -255,13 +255,14 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget _buildTextField() {
     return TextField(
       controller: _controller,
-      style: TextStyle(fontSize: 18, color: Colors.black),
+      style: const TextStyle(fontSize: 18, color: Colors.black),
       decoration: InputDecoration(
         hintText: 'Message',
         hintStyle: TextStyle(fontSize: 18, color: Colors.grey[600]),
         border: InputBorder.none,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16),
       ),
+      onSubmitted: (_) => _sendMessage(),
     );
   }
 

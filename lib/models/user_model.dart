@@ -3,16 +3,16 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class User {
   final String userId;
   final String email;
-  final String? firstName;
-  final String? lastName;
+  final String firstName;
+  final String lastName;
   final String? imageUrl;
   final DateTime? updatedAt;
 
   User({
     required this.userId,
     required this.email,
-    this.firstName,
-    this.lastName,
+    required this.firstName,
+    required this.lastName,
     this.imageUrl,
     this.updatedAt,
   });
@@ -22,8 +22,8 @@ class User {
     return User(
       userId: snapshot.id,
       email: data['email'] ?? '',
-      firstName: data['first_name'],
-      lastName: data['last_name'],
+      firstName: data['first_name'] ?? '',
+      lastName: data['last_name'] ?? '',
       imageUrl: data['image_url'],
       updatedAt: data['updated_at']?.toDate(),
     );
@@ -32,8 +32,8 @@ class User {
   Map<String, dynamic> toFirestore() {
     return {
       'email': email,
-      if (firstName != null) 'first_name': firstName,
-      if (lastName != null) 'last_name': lastName,
+      'first_name': firstName,
+      'last_name': lastName,
       if (imageUrl != null) 'image_url': imageUrl,
       'updated_at': FieldValue.serverTimestamp(),
     };

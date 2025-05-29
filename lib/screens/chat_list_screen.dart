@@ -171,6 +171,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
   }
 
   Future<void> _createGroup(List<String> participantIds) async {
+    _groupNameController.clear();
     final String? groupName = await showDialog<String>(
       context: context,
       builder:
@@ -184,8 +185,10 @@ class _ChatListScreenState extends State<ChatListScreen> {
             actions: [
               MyButton(onPressed: () => Navigator.pop(context), text: 'انصراف'),
               MyButton(
-                onPressed:
-                    () => Navigator.pop(context, _groupNameController.text),
+                onPressed: () {
+                  if (_groupNameController.text.trim().isEmpty) return;
+                  Navigator.pop(context, _groupNameController.text.trim());
+                },
                 text: 'تایید',
               ),
             ],
@@ -194,24 +197,35 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
     if (groupName == null || groupName.isEmpty) return;
 
-    final chatId = await _firestoreService.createNewChat(
-      participantIds: participantIds,
-      type: ChatType.group,
-      name: groupName,
-    );
+    try {
+      final chatId = await _firestoreService.createNewChat(
+        participantIds: participantIds,
+        type: ChatType.group,
+        name: groupName,
+      );
 
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder:
+              (_) => ChatScreen(
+                chatName: groupName,
+                participantIds: participantIds,
+                chatId: chatId,
+                chatType: ChatType.group,
+              ),
+        ),
+      );
+    } catch (e) {
+      _showSnackBar('خطا در ساخت گروه');
+    }
+  }
+
+  void _showSnackBar(String message) {
     if (!mounted) return;
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder:
-            (_) => ChatScreen(
-              chatName: groupName,
-              participantIds: participantIds,
-              chatId: chatId,
-              chatType: ChatType.group,
-            ),
-      ),
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), duration: const Duration(seconds: 3)),
     );
   }
 }
