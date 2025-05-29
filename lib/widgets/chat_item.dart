@@ -51,11 +51,11 @@ class _ChatItem extends State<ChatItem> {
             return ListTile(
               onTap: _navigateToChatScreen,
               leading: UserAvatar(
-                name: snapshot.data!,
+                name: chatName!,
                 avatarUrl: chatItem!.imageUrl,
               ),
               title: Text(
-                snapshot.data!,
+                chatName!,
                 style: TextStyle(
                   color: Colors.black87,
                   fontWeight: FontWeight.bold,
@@ -75,10 +75,7 @@ class _ChatItem extends State<ChatItem> {
                     style: TextStyle(color: Colors.grey),
                   ),
                   if (unseenCount > 0)
-                    Positioned(
-                      right: 0,
-                      top: 0,
-                      child: Container(
+                    Container(
                         padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
                           color: Colors.red,
@@ -91,7 +88,6 @@ class _ChatItem extends State<ChatItem> {
                             fontSize: 12,
                           ),
                         ),
-                      ),
                     ),
                 ],
               ),
