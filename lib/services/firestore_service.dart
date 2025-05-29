@@ -26,7 +26,6 @@ class FirestoreService {
     String firstName = '',
     String lastName = '',
     String imageUrl = '',
-    bool isAdmin = false,
   }) async {
     final userRef = _usersRef.doc(userId);
 
@@ -36,9 +35,7 @@ class FirestoreService {
       firstName: firstName,
       lastName: lastName,
       imageUrl: imageUrl,
-      isAdmin: isAdmin,
       updatedAt: DateTime.now(),
-      chatsIds: const [],
     );
 
     await userRef.set(newUser);
@@ -50,7 +47,6 @@ class FirestoreService {
     String? firstName,
     String? lastName,
     String? imageUrl,
-    bool? isAdmin,
   }) async {
     final userRef = _usersRef.doc(userId);
     final updates = <String, dynamic>{
@@ -61,7 +57,6 @@ class FirestoreService {
     if (firstName != null) updates['first_name'] = firstName;
     if (lastName != null) updates['last_name'] = lastName;
     if (imageUrl != null) updates['image_url'] = imageUrl;
-    if (isAdmin != null) updates['is_admin'] = isAdmin;
 
     await userRef.update(updates);
   }
@@ -151,17 +146,6 @@ class FirestoreService {
       ),
     );
 
-    final batch = _firestore.batch();
-    for (final userId in participantIds) {
-      final userRef = _usersRef.doc(userId);
-      batch.update(userRef, {
-        'chats_ids': FieldValue.arrayUnion([chatRef.id]),
-        'updated_at': FieldValue.serverTimestamp(),
-      });
-    }
-
-    await batch.commit();
-
     return chatRef.id;
   }
 
@@ -239,37 +223,11 @@ class FirestoreService {
   }
 
   Stream<List<Chat>> getUserChatsStream({required String userId}) {
-    return _usersRef
-        .doc(userId)
+    return _chatsRef
+        .where('participants', arrayContains: userId)
+        .orderBy('updated_at', descending: true)
         .snapshots()
-        .asyncMap((userSnapshot) async {
-          if (!userSnapshot.exists) return [];
-
-          final user = userSnapshot.data()!;
-          final chatsIds = user.chatsIds;
-
-          if (chatsIds?.isEmpty ?? true) return [];
-
-          final chatsQuery = _chatsRef
-              .where(FieldPath.documentId, whereIn: chatsIds)
-              .orderBy('updated_at', descending: true);
-
-          final chatsSnapshot = await chatsQuery.get();
-
-          return chatsSnapshot.docs.map((doc) => doc.data()).toList();
-        })
-        .asyncExpand((chats) {
-          if (chats.isEmpty) return Stream.value([]);
-
-          final chatsIds = chats.map((c) => c.chatId).toList();
-          return _chatsRef
-              .where(FieldPath.documentId, whereIn: chatsIds)
-              .orderBy('updated_at', descending: true)
-              .snapshots()
-              .map(
-                (snapshot) => snapshot.docs.map((doc) => doc.data()).toList(),
-              );
-        });
+        .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
   }
 
   Stream<List<ChatMessage>> getChatMessagesStream({required String chatId}) {

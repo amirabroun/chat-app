@@ -4,7 +4,7 @@ import 'package:chat_app/services/firestore_service.dart';
 import 'package:chat_app/screens/chat_screen.dart';
 import 'package:chat_app/models/chat_model.dart';
 
-class ChatItem extends StatefulWidget {
+class ChatItem extends StatelessWidget {
   final Chat chatItem;
   final String currentUserId;
 
@@ -15,47 +15,28 @@ class ChatItem extends StatefulWidget {
   });
 
   @override
-  State<ChatItem> createState() => _ChatItem();
-}
-
-class _ChatItem extends State<ChatItem> {
-  Chat? chatItem;
-  String? chatName;
-  String? currentUserId;
-
-  @override
-  void initState() {
-    super.initState();
-    chatItem = widget.chatItem;
-    currentUserId = widget.currentUserId;
-  }
-
-  @override
   Widget build(BuildContext context) {
     return FutureBuilder<String>(
       future: _getChatName(),
       builder: (context, snapshot) {
         // This is temperery
         if (!snapshot.hasData) {
-          return Center();
+          return const SizedBox.shrink();
         }
-        chatName = snapshot.data;
+        final chatName = snapshot.data!;
 
         return StreamBuilder<int>(
           stream: FirestoreService().getUnseenMessageCount(
-            chatId: chatItem!.chatId,
-            userId: currentUserId!,
+            chatId: chatItem.chatId,
+            userId: currentUserId,
           ),
           builder: (context, unseenSnapshot) {
             final unseenCount = unseenSnapshot.data ?? 0;
             return ListTile(
-              onTap: _navigateToChatScreen,
-              leading: UserAvatar(
-                name: chatName!,
-                avatarUrl: chatItem!.imageUrl,
-              ),
+              onTap: () => _navigateToChatScreen(context, chatName),
+              leading: UserAvatar(name: chatName, avatarUrl: chatItem.imageUrl),
               title: Text(
-                chatName!,
+                chatName,
                 style: TextStyle(
                   color: Colors.black87,
                   fontWeight: FontWeight.bold,
@@ -72,22 +53,22 @@ class _ChatItem extends State<ChatItem> {
                 children: [
                   Text(
                     _getMessageTimestamp(),
-                    style: TextStyle(color: Colors.grey),
+                    style: const TextStyle(color: Colors.grey),
                   ),
                   if (unseenCount > 0)
                     Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: Colors.red,
-                          shape: BoxShape.circle,
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Text(
+                        unseenCount.toString(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
                         ),
-                        child: Text(
-                          unseenCount.toString(),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                          ),
-                        ),
+                      ),
                     ),
                 ],
               ),
@@ -99,10 +80,10 @@ class _ChatItem extends State<ChatItem> {
   }
 
   Future<String> _getChatName() async {
-    if (chatItem!.name != null) return chatItem!.name!;
+    if (chatItem.name != null) return chatItem.name!;
 
     final otherIds =
-        chatItem!.participants.where((id) => id != currentUserId).toList();
+        chatItem.participants.where((id) => id != currentUserId).toList();
 
     if (otherIds.isEmpty) return 'You';
 
@@ -114,14 +95,14 @@ class _ChatItem extends State<ChatItem> {
   }
 
   String _getLastMessagePreview() {
-    final lastMessage = chatItem!.lastMessage;
+    final lastMessage = chatItem.lastMessage;
     if (lastMessage == null) return 'No messages yet';
     return '${lastMessage['sender_id'] == currentUserId ? 'You: ' : ''} ${lastMessage['text']}';
   }
 
   String _getMessageTimestamp() {
     final now = DateTime.now();
-    final time = chatItem!.updatedAt;
+    final time = chatItem.updatedAt;
     final difference = now.difference(time);
 
     if (difference.inDays > 7) {
@@ -132,15 +113,15 @@ class _ChatItem extends State<ChatItem> {
     return '${time.hour}:${time.minute.toString().padLeft(2, '0')}';
   }
 
-  void _navigateToChatScreen() {
+  void _navigateToChatScreen(BuildContext context, String chatName) {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder:
             (context) => ChatScreen(
-              chatName: chatName!,
-              chatId: chatItem?.chatId,
-              chatType: chatItem?.type,
+              chatName: chatName,
+              chatId: chatItem.chatId,
+              chatType: chatItem.type,
             ),
       ),
     );
