@@ -285,6 +285,38 @@ class FirestoreService {
         );
   }
 
+  Future<void> markMessageAsSeen({
+    required String chatId,
+    required String messageId,
+    required String userId,
+  }) async {
+    final messageRef = _firestore
+        .collection('chats/$chatId/messages')
+        .doc(messageId);
+    await messageRef.update({
+      'seen_by': FieldValue.arrayUnion([userId]),
+    });
+  }
+
+  Stream<int> getUnseenMessageCount({
+    required String chatId,
+    required String userId,
+  }) {
+    return _firestore
+        .collection('chats')
+        .doc(chatId)
+        .collection('messages')
+        .where('sender_id', isNotEqualTo: userId)
+        .snapshots()
+        .map(
+          (snapshot) =>
+              snapshot.docs.where((doc) {
+                final seenBy = List<String>.from(doc['seen_by'] ?? []);
+                return !seenBy.contains(userId);
+              }).length,
+        );
+  }
+
   Future<void> sendMessage({
     required String chatId,
     required String senderId,

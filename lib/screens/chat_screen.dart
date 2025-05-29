@@ -111,11 +111,28 @@ class _ChatScreenState extends State<ChatScreen> {
         }
 
         final messages = snapshot.data ?? [];
-        return messages.isEmpty
-            ? _centeredText('هنوز پیامی وجود ندارد')
-            : _buildMessageList(messages);
+
+        if (messages.isEmpty) {
+          return _centeredText('هنوز پیامی وجود ندارد');
+        }
+        _markMessagesAsSeen(messages);
+        return _buildMessageList(messages);
       },
     );
+  }
+
+  void _markMessagesAsSeen(List<ChatMessage> messages) async {
+    if (_currentUserId == null) return;
+    for (final msg in messages) {
+      if (!msg.seenBy.contains(_currentUserId) &&
+          msg.senderId != _currentUserId) {
+        await _firestore.markMessageAsSeen(
+          chatId: _chatId!,
+          messageId: msg.messageId,
+          userId: _currentUserId,
+        );
+      }
+    }
   }
 
   Widget _buildMessageList(List<ChatMessage> messages) {
@@ -154,13 +171,14 @@ class _ChatScreenState extends State<ChatScreen> {
                 color: isMe ? Colors.white : Colors.black,
               ),
             ),
-            Text(
-              _formatTime(message.timestamp),
-              style: TextStyle(
-                fontSize: 14,
-                color: isMe ? Colors.white70 : Colors.grey[600],
-              ),
-            ),
+                Text(
+                  _formatTime(message.timestamp),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: isMe ? Colors.white70 : Colors.grey[600],
+                  ),
+                ),
+                if (isMe) _buildSeenIndicator(message),
           ],
         ),
       ),
@@ -197,6 +215,15 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildSeenIndicator(ChatMessage message) {
+    final seen = message.seenBy.contains(_otherUserId);
+    return Icon(
+      seen ? Icons.done_all : Icons.done,
+      size: 16,
+      color: Colors.white70,
     );
   }
 

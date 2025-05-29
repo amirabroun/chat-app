@@ -41,30 +41,62 @@ class _ChatItem extends State<ChatItem> {
         }
         chatName = snapshot.data;
 
-        return ListTile(
-          onTap: _navigateToChatScreen,
-          leading: UserAvatar(
-            name: snapshot.data!,
-            avatarUrl: chatItem!.imageUrl,
+        return StreamBuilder<int>(
+          stream: FirestoreService().getUnseenMessageCount(
+            chatId: chatItem!.chatId,
+            userId: currentUserId!,
           ),
-          title: Text(
-            snapshot.data!,
-            style: TextStyle(
-              color: Colors.black87,
-              fontWeight: FontWeight.bold,
-            ),
-            overflow: TextOverflow.ellipsis,
-          ),
-          subtitle: Text(
-            _getLastMessagePreview(),
-            maxLines: 1,
-            overflow: TextOverflow.clip,
-            style: TextStyle(color: Colors.grey),
-          ),
-          trailing: Text(
-            _getMessageTimestamp(),
-            style: TextStyle(color: Colors.grey),
-          ),
+          builder: (context, unseenSnapshot) {
+            final unseenCount = unseenSnapshot.data ?? 0;
+            return ListTile(
+              onTap: _navigateToChatScreen,
+              leading: UserAvatar(
+                name: snapshot.data!,
+                avatarUrl: chatItem!.imageUrl,
+              ),
+              title: Text(
+                snapshot.data!,
+                style: TextStyle(
+                  color: Colors.black87,
+                  fontWeight: FontWeight.bold,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+              subtitle: Text(
+                _getLastMessagePreview(),
+                maxLines: 1,
+                overflow: TextOverflow.clip,
+                style: TextStyle(color: Colors.grey),
+              ),
+              trailing: Column(
+                children: [
+                  if (unseenCount > 0)
+                    Positioned(
+                      right: 0,
+                      top: 0,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          unseenCount.toString(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ),
+                  Text(
+                    _getMessageTimestamp(),
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ],
+              ),
+            );
+          },
         );
       },
     );

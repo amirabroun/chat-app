@@ -5,12 +5,14 @@ class ChatMessage {
   final String senderId;
   final String text;
   final DateTime timestamp;
+  final List<String> seenBy;
 
   ChatMessage({
     required this.messageId,
     required this.senderId,
     required this.text,
     required this.timestamp,
+    this.seenBy = const [],
   });
 
   factory ChatMessage.fromFirestore(
@@ -22,6 +24,7 @@ class ChatMessage {
       senderId: data['sender_id'],
       text: data['text'],
       timestamp: (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      seenBy: List<String>.from(data['seen_by'] ?? []),
     );
   }
 
@@ -30,6 +33,7 @@ class ChatMessage {
       'sender_id': senderId,
       'text': text,
       'timestamp': FieldValue.serverTimestamp(),
+      'seen_by': seenBy,
     };
   }
 }
