@@ -171,14 +171,14 @@ class _ChatScreenState extends State<ChatScreen> {
                 color: isMe ? Colors.white : Colors.black,
               ),
             ),
-                Text(
-                  _formatTime(message.timestamp),
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: isMe ? Colors.white70 : Colors.grey[600],
-                  ),
-                ),
-                if (isMe) _buildSeenIndicator(message),
+            Text(
+              _formatTime(message.timestamp),
+              style: TextStyle(
+                fontSize: 14,
+                color: isMe ? Colors.white70 : Colors.grey[600],
+              ),
+            ),
+            if (isMe) _buildSeenIndicator(message),
           ],
         ),
       ),
