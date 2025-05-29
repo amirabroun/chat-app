@@ -37,7 +37,7 @@ class _ChatScreenState extends State<ChatScreen> {
   );
 
   Stream<List<ChatMessage>> _messagesStream = const Stream.empty();
-  late String? _chatId;
+  String? _chatId;
   bool _isSending = false;
 
   @override
@@ -333,7 +333,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<String> _getOrCreateChatId() async {
-    if (_chatId != null) {
+    if (_chatId != null && _chatId!.isNotEmpty) {
       return _chatId!;
     }
 
@@ -343,7 +343,11 @@ class _ChatScreenState extends State<ChatScreen> {
         participantIds: _participantSet.toList(),
         name: widget.chatName,
       );
-      setState(() => _chatId = newChatId);
+
+      if (mounted) {
+        setState(() => _chatId = newChatId);
+      }
+
       return newChatId;
     } catch (e) {
       debugPrint('Chat creation failed: $e');

@@ -48,7 +48,6 @@ class _ChatItem extends State<ChatItem> {
           ),
           builder: (context, unseenSnapshot) {
             final unseenCount = unseenSnapshot.data ?? 0;
-            print(unseenSnapshot.data);
             return ListTile(
               onTap: _navigateToChatScreen,
               leading: UserAvatar(
