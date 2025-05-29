@@ -48,6 +48,7 @@ class _ChatItem extends State<ChatItem> {
           ),
           builder: (context, unseenSnapshot) {
             final unseenCount = unseenSnapshot.data ?? 0;
+            print(unseenSnapshot.data);
             return ListTile(
               onTap: _navigateToChatScreen,
               leading: UserAvatar(
@@ -70,6 +71,10 @@ class _ChatItem extends State<ChatItem> {
               ),
               trailing: Column(
                 children: [
+                  Text(
+                    _getMessageTimestamp(),
+                    style: TextStyle(color: Colors.grey),
+                  ),
                   if (unseenCount > 0)
                     Positioned(
                       right: 0,
@@ -89,10 +94,6 @@ class _ChatItem extends State<ChatItem> {
                         ),
                       ),
                     ),
-                  Text(
-                    _getMessageTimestamp(),
-                    style: TextStyle(color: Colors.grey),
-                  ),
                 ],
               ),
             );

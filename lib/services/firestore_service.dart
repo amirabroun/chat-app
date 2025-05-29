@@ -285,6 +285,32 @@ class FirestoreService {
         );
   }
 
+  Future<void> sendMessage({
+    required String chatId,
+    required String senderId,
+    required String text,
+  }) async {
+    final message = {
+      'sender_id': senderId,
+      'text': text,
+      'timestamp': FieldValue.serverTimestamp(),
+      'seen_by': [],
+    };
+
+    final batch = _firestore.batch();
+
+    final messageRef = _firestore.collection('chats/$chatId/messages').doc();
+    batch.set(messageRef, message);
+
+    final chatRef = _chatsRef.doc(chatId);
+    batch.update(chatRef, {
+      'last_message': message,
+      'updated_at': FieldValue.serverTimestamp(),
+    });
+
+    await batch.commit();
+  }
+
   Future<void> markMessageAsSeen({
     required String chatId,
     required String messageId,
@@ -315,31 +341,6 @@ class FirestoreService {
                 return !seenBy.contains(userId);
               }).length,
         );
-  }
-
-  Future<void> sendMessage({
-    required String chatId,
-    required String senderId,
-    required String text,
-  }) async {
-    final message = {
-      'sender_id': senderId,
-      'text': text,
-      'timestamp': FieldValue.serverTimestamp(),
-    };
-
-    final batch = _firestore.batch();
-
-    final messageRef = _firestore.collection('chats/$chatId/messages').doc();
-    batch.set(messageRef, message);
-
-    final chatRef = _chatsRef.doc(chatId);
-    batch.update(chatRef, {
-      'last_message': message,
-      'updated_at': FieldValue.serverTimestamp(),
-    });
-
-    await batch.commit();
   }
 
   Future<List<ChatMessage>> getPaginatedMessages(
