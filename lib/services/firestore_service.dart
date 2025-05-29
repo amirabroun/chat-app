@@ -182,11 +182,24 @@ class FirestoreService {
   }
 
   Future<void> deleteChat({required String chatId}) async {
+    final chatRef = _chatsRef.doc(chatId);
+    final messagesRef = _firestore.collection('chats/$chatId/messages');
+
     try {
-      final chatRef = _chatsRef.doc(chatId);
+      while (true) {
+        final snapshot = await messagesRef.limit(500).get();
+        if (snapshot.docs.isEmpty) break;
+
+        final batch = _firestore.batch();
+        for (final doc in snapshot.docs) {
+          batch.delete(doc.reference);
+        }
+        await batch.commit();
+      }
+
       await chatRef.delete();
     } catch (e) {
-      throw Exception('Error deleting chat: $e');
+      throw Exception('Error deleting chat and messages: $e');
     }
   }
 
