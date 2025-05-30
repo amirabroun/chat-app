@@ -1,0 +1,9 @@
+version: '3.8'
+services:
+  flutter-web:
+    build: .
+    ports:
+      - "8080:5000"
+    volumes:
+      - .:/app
+    restart: unless-stopped
