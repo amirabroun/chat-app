@@ -5,6 +5,7 @@ import 'package:chat_app/components/my_textfield.dart';
 import 'package:chat_app/components/my_button.dart';
 import 'package:chat_app/screens/login_screen.dart';
 import 'package:chat_app/screens/profile_screen.dart';
+import 'package:chat_app/screens/chat_list_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -224,7 +225,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
       _confirmPWController.clear();
       _firstNameController.clear();
       _lastNameController.clear();
-      _navigateToProfile();
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ChatListScreen(currentUserId: AuthService().getCurrentUserId()!),
+          ),
+        );
+      }
     } catch (e) {
       if (!mounted) return;
       _showMessage(e.toString(), backgroundColor: Colors.red);
